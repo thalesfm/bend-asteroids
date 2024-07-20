@@ -1,0 +1,22 @@
+@App = (a (b ((@App/tag (a (b c))) c)))
+
+@App/init = ((@App/init__C0 a) a)
+
+@App/init__C0 = (?(((a (* a)) *) b) b)
+
+@App/tag = 0
+
+@App/update = ((@App/update__C0 a) a)
+
+@App/update__C0 = (?(((* (a a)) *) b) b)
+
+@init_ = 0
+
+@main = d
+  & @App/update ~ (a (c d))
+  & @App ~ (@init_ (@update {a b}))
+  & @App/init ~ (b c)
+
+@update = ($([+0x0000001] a) a)
+
+
