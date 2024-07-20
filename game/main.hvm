@@ -10,16 +10,15 @@
 
 @app/App/tag = 0
 
-@draw = (* d)
-  & @List/Cons ~ (1 (c d))
-  & @List/Cons ~ (2 (b c))
-  & @List/Cons ~ (3 (a b))
-  & @List/Cons ~ (4 (@List/Nil a))
+@draw = (* c)
+  & @List/Cons ~ (1 (b c))
+  & @List/Cons ~ (2 (a b))
+  & @List/Cons ~ (3 (@List/Nil a))
 
 @init = 10
 
 @main = a
-  & @app/App ~ (@init (@tick (@draw a)))
+  & @draw ~ (@init a)
 
 @tick = ($([+0x0000001] a) a)
 

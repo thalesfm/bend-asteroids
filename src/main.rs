@@ -10,15 +10,17 @@ use ::hvm::ast;
 fn run(book: &hvm::Book) {
     let net = hvm::GNet::new(1 << 29, 1 << 29);
     let mut tm = hvm::TMem::new(0, 1);
-    let main_id = book.defs.iter().position(|def| def.name == "init").unwrap();
+    let main_id = book.defs.iter().position(|def| def.name == "main").unwrap();
     net.vars_create(hvm::ROOT.get_val() as usize, hvm::NONE);
     tm.rbag.push_redex(hvm::Pair::new(hvm::Port::new(hvm::REF, main_id as u32), hvm::ROOT));
     tm.evaluator(&net, &book);
 
     if let Some(net) = ast::Net::readback(&net, &book) {
         // let val = Vec::<u32>::try_parse(&net);
-        let val = u32::from_hvm(&net);
-        println!("Result: {:?}", val);
+        let val = Vec::<u32>::from_hvm(&net);
+        println!("Result: {:?}\n", val);
+        println!("Result: {}\n", net.show());
+        println!("Result: {:?}", net);
     } else {
         panic!("Readback failed");
     }

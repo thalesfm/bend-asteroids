@@ -7,10 +7,11 @@ def tick(state):
   return state + 1
 
 def draw(state):
-  return [1, 2, 3, 4]
+  return [1, 2, 3]
 
 def main():
-  return App { init: init, tick: tick, draw: draw }
+  # return App { init: init, tick: tick, draw: draw }
+  return draw(init)
 
 # def main():
 #   state0 = init_
