@@ -1,54 +1,62 @@
-use crate::convert::FromHvm;
+// use crate::convert::FromHvm;
 use ::hvm::{ast, hvm};
 use std::collections::BTreeMap;
 
-// TODO: App struct
+type State = ast::Net;
 
-pub fn run_file(path: &str) {
-    let code = std::fs::read_to_string(path).expect("Unable to read file");
-    let ast_book = ast::Book::parse(&code).unwrap();
-    let hvm_book = ast_book.build();
-    run(&ast_book, &hvm_book);
+// TODO: App struct
+pub struct App<'a> {
+    net: hvm::GNet<'a>,
+    tm: hvm::TMem,
+    ast_book: ast::Book,
+    hvm_book: hvm::Book,
 }
 
-fn run(ast_book: &ast::Book, hvm_book: &hvm::Book) {
-    let net = hvm::GNet::new(1 << 29, 1 << 29);
-    let mut tm = hvm::TMem::new(0, 1);
-
-    let init_id = hvm_book.defs.iter().position(|def| def.name == "init").unwrap();
-    let tick_id = hvm_book.defs.iter().position(|def| def.name == "tick").unwrap();
-
-    // Want to evaluate:
-    // @init ~ ROOT
-    assert!(tm.get_resources(&net, 1, 0, 1));
-    net.vars_create(hvm::ROOT.get_val() as usize, hvm::NONE);
-    tm.rbag.push_redex(hvm::Pair::new(hvm::Port::new(hvm::REF, init_id as u32), hvm::ROOT));
-    tm.evaluator(&net, &hvm_book);
-
-    let mut state: hvm::Port;
-    if let Some(ret) = ast::Net::readback(&net, &hvm_book) {
-        println!("state0: {:?}", u32::from_hvm(&ret));
-        state = build(&ret.root, &net, &mut tm, ast_book);
-    } else {
-        panic!("Readback failed");
+impl<'a> App<'a> {
+    pub fn load_from_file(path: &str) -> Option<App> {
+        let code = std::fs::read_to_string(path).expect("Unable to read file");
+        let ast_book = ast::Book::parse(&code).unwrap();
+        let hvm_book = ast_book.build();
+        let net = hvm::GNet::new(1 << 29, 1 << 29);
+        let tm = hvm::TMem::new(0, 1);
+        App { net, tm, ast_book, hvm_book }.into()
     }
 
-    for i in 1..10 {
-        // Want to evaluate:
-        // @tick ~ (state ROOT)
-        assert!(tm.get_resources(&net, 1, 1, 0));
-        net.vars_create(hvm::ROOT.get_val() as usize, hvm::NONE);
-        net.node_create(tm.nloc[1], hvm::Pair::new(state, hvm::ROOT)); // (state ROOT)
-        // net.node_create(tm.nloc[1], hvm::Pair::new(state0, hvm::ROOT));
-        tm.rbag.push_redex(hvm::Pair::new(hvm::Port::new(hvm::REF, tick_id as u32), hvm::Port::new(hvm::CON, tm.nloc[1] as u32))); // _update ~ (state {state' ROOT})
-        tm.evaluator(&net, &hvm_book);
+    pub fn init(&mut self) -> Option<State> {
+        let init_id = self.hvm_book.defs.iter().position(|def| def.name == "init").unwrap();
 
+        assert!(self.tm.get_resources(&self.net, 1, 0, 1));
+
+        self.net.vars_create(hvm::ROOT.get_val() as usize, hvm::NONE);
+        self.tm.rbag.push_redex(hvm::Pair::new(hvm::Port::new(hvm::REF, init_id as u32), hvm::ROOT));
+        self.tm.evaluator(&self.net, &self.hvm_book);
+
+        /*
+        let mut state: hvm::Port;
         if let Some(ret) = ast::Net::readback(&net, &hvm_book) {
-            println!("state{}: {:?}", i, u32::from_hvm(&ret));
+            println!("state0: {:?}", u32::from_hvm(&ret));
             state = build(&ret.root, &net, &mut tm, ast_book);
         } else {
             panic!("Readback failed");
         }
+        */
+
+        ast::Net::readback(&self.net, &self.hvm_book)
+    }
+
+    pub fn update(&mut self, state: State) -> Option<State> {
+        let tick_id = self.hvm_book.defs.iter().position(|def| def.name == "tick").unwrap();
+
+        assert!(self.tm.get_resources(&self.net, 1, 1, 0));
+
+        let state = build(&state.root, &self.net, &mut self.tm, &self.ast_book);
+
+        self.net.vars_create(hvm::ROOT.get_val() as usize, hvm::NONE);
+        self.net.node_create(self.tm.nloc[1], hvm::Pair::new(state, hvm::ROOT));
+        self.tm.rbag.push_redex(hvm::Pair::new(hvm::Port::new(hvm::REF, tick_id as u32), hvm::Port::new(hvm::CON, self.tm.nloc[1] as u32)));
+        self.tm.evaluator(&self.net, &self.hvm_book);
+
+        ast::Net::readback(&self.net, &self.hvm_book)
     }
 }
 

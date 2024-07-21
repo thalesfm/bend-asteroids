@@ -1,6 +1,8 @@
 mod app;
 mod convert;
 
+use app::App;
+use convert::FromHvm;
 use macroquad::prelude::*;
 
 fn window_conf() -> Conf {
@@ -15,10 +17,14 @@ fn window_conf() -> Conf {
 
 #[macroquad::main(window_conf)]
 async fn main() {
-    // app::run_file("game/main.hvm");
+    let mut app = App::load_from_file("game/main.hvm").unwrap();
+    let mut state = app.init().unwrap();
 
     loop {
         clear_background(Color::new(0.1, 0.2, 0.3, 1.0));
+        let value = u32::from_hvm(&state);
+        draw_text(format!("state: {:?}", value).as_str(), 64.0, 64.0, 30.0, WHITE);
+        state = app.update(state).unwrap();
         next_frame().await
     }
 }
