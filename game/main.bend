@@ -1,7 +1,7 @@
 from ./app import App
 
 def init():
-  return 10
+  return 0
 
 def tick(state):
   return state + 1

@@ -15,7 +15,7 @@
   & @List/Cons ~ (2 (a b))
   & @List/Cons ~ (3 (@List/Nil a))
 
-@init = 10
+@init = 0
 
 @main = a
   & @draw ~ (@init a)
