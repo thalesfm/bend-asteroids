@@ -1,8 +1,13 @@
 [package]
-name = "kind-game"
+name = "bend-game"
 version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-hvm = "2.0"
 bend-lang = "0.2.36"
+env_logger = "0.10"
+hvm = "2.0"
+# log = "0.4"
+pollster = "0.3"
+wgpu = "22.0"
+winit = { version = "0.29", features = ["rwh_05"] }

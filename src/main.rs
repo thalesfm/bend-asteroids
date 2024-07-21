@@ -1,105 +1,169 @@
+mod app;
 mod convert;
 
-// use bend::{compile_book, load_file_to_book, run_book, CompileOpts, RunOpts};
-// use bend::fun::{Book, Name, Term};
-// use bend::diagnostics::{Diagnostics, DiagnosticsConfig};
-use crate::convert::FromHvm;
-use hvm::hvm;
-use ::hvm::ast;
-use std::collections::BTreeMap;
+use winit::{
+    event::*,
+    event_loop::{EventLoop, EventLoopWindowTarget},
+    keyboard::{KeyCode, PhysicalKey},
+    window::{Window, WindowBuilder},
+};
 
-pub fn build(tree: &ast::Tree, net: &hvm::GNet, tm: &mut hvm::TMem, book: &ast::Book) -> hvm::Port {
-    let mut name_to_fid = BTreeMap::new();
-    let mut fid_to_name = BTreeMap::new();
-    fid_to_name.insert(0, "main".to_string());
-    name_to_fid.insert("main".to_string(), 0);
-    for (_i, (name, _)) in book.defs.iter().enumerate() {
-      if name != "main" {
-        fid_to_name.insert(name_to_fid.len() as hvm::Val, name.clone());
-        name_to_fid.insert(name.clone(), name_to_fid.len() as hvm::Val);
-      }
-    }
-    let mut def = hvm::Def {
-      name: "".to_string(),
-      safe: true,
-      root: hvm::Port(0),
-      rbag: vec![],
-      node: vec![],
-      vars: 0,
-    };
-    let port = tree.build(&mut def, &name_to_fid, &mut BTreeMap::new());
-
-    // Allocates needed nodes and vars.
-    if !tm.get_resources(net, def.rbag.len() + 1, def.node.len(), def.vars as usize) {
-        panic!()
-    }
-
-    // Stores new vars.
-    for i in 0..def.vars {
-      net.vars_create(tm.vloc[i], hvm::NONE);
-      //println!("vars_create vars_loc[{:04X}] {:04X}", i, self.vloc[i]);
-    }
-
-    // Stores new nodes.
-    for i in 0..def.node.len() {
-      net.node_create(tm.nloc[i], def.node[i].adjust_pair(tm));
-      //println!("node_create node_loc[{:04X}] {:016X}", i-1, def.node[i].0);
-    }
-
-    // Links.
-    for pair in &def.rbag {
-      tm.link_pair(net, pair.adjust_pair(tm));
-    }
-    // tm.link_pair(net, hvm::Pair::new(def.root.adjust_port(tm), b));
-
-    return port;
+struct State<'a> {
+    surface: wgpu::Surface<'a>,
+    device: wgpu::Device,
+    queue: wgpu::Queue,
+    config: wgpu::SurfaceConfiguration,
+    size: winit::dpi::PhysicalSize<u32>,
+    // According to the wgpu docs, the window must be dropped after the surface
+    // so shit don't break, so we declare it after the surface in the struct
+    window: &'a Window,
 }
 
-fn run(ast_book: &ast::Book, hvm_book: &hvm::Book) {
-    let net = hvm::GNet::new(1 << 29, 1 << 29);
-    let mut tm = hvm::TMem::new(0, 1);
+impl<'a> State<'a> {
+    async fn new(window: &'a Window) -> State<'a> {
+        let instance = wgpu::Instance::new(wgpu::InstanceDescriptor {
+            backends: wgpu::Backends::PRIMARY, // NOTE: Needs to be different for web!
+            ..Default::default()
+        });
 
-    let init_id = hvm_book.defs.iter().position(|def| def.name == "init").unwrap();
-    let tick_id = hvm_book.defs.iter().position(|def| def.name == "tick").unwrap();
+        let surface = instance.create_surface(window).unwrap();
 
-    // Want to evaluate:
-    // @init ~ ROOT
-    assert!(tm.get_resources(&net, 1, 0, 1));
-    net.vars_create(hvm::ROOT.get_val() as usize, hvm::NONE);
-    tm.rbag.push_redex(hvm::Pair::new(hvm::Port::new(hvm::REF, init_id as u32), hvm::ROOT));
-    tm.evaluator(&net, &hvm_book);
+        let adapter = instance.request_adapter(
+            &wgpu::RequestAdapterOptions {
+                power_preference: wgpu::PowerPreference::HighPerformance,
+                compatible_surface: Some(&surface),
+                force_fallback_adapter: false,
+            }
+        ).await.unwrap();
 
-    let mut state: hvm::Port;
-    if let Some(ret) = ast::Net::readback(&net, &hvm_book) {
-        println!("state0: {:?}", u32::from_hvm(&ret));
-        state = build(&ret.root, &net, &mut tm, ast_book);
-    } else {
-        panic!("Readback failed");
+        let (device, queue) = adapter.request_device(
+            &wgpu::DeviceDescriptor {
+                label: None,
+                required_features: wgpu::Features::empty(),
+                required_limits: wgpu::Limits::default(), // NOTE: Needs to be different for web!
+                memory_hints: wgpu::MemoryHints::default(),
+            },
+            None,
+        ).await.unwrap();
+
+        let size = window.inner_size();
+        let surface_caps = surface.get_capabilities(&adapter);
+        let surface_format = surface_caps.formats.iter()
+            .find(|format| format.is_srgb())
+            .copied()
+            .unwrap_or(surface_caps.formats[0]);
+        let config = wgpu::SurfaceConfiguration {
+            usage: wgpu::TextureUsages::RENDER_ATTACHMENT,
+            format: surface_format,
+            width: size.width,
+            height: size.height,
+            present_mode: wgpu::PresentMode::AutoVsync,
+            alpha_mode: surface_caps.alpha_modes[0],
+            view_formats: vec![],
+            desired_maximum_frame_latency: 2,
+        };
+
+        Self { window, surface, device, queue, config, size }
     }
 
-    for i in 1..10 {
-        // Want to evaluate:
-        // @tick ~ (state ROOT)
-        assert!(tm.get_resources(&net, 1, 1, 0));
-        net.vars_create(hvm::ROOT.get_val() as usize, hvm::NONE);
-        net.node_create(tm.nloc[1], hvm::Pair::new(state, hvm::ROOT)); // (state ROOT)
-        // net.node_create(tm.nloc[1], hvm::Pair::new(state0, hvm::ROOT));
-        tm.rbag.push_redex(hvm::Pair::new(hvm::Port::new(hvm::REF, tick_id as u32), hvm::Port::new(hvm::CON, tm.nloc[1] as u32))); // _update ~ (state {state' ROOT})
-        tm.evaluator(&net, &hvm_book);
+    fn window(&self) -> &Window {
+        &self.window
+    }
 
-        if let Some(ret) = ast::Net::readback(&net, &hvm_book) {
-            println!("state{}: {:?}", i, u32::from_hvm(&ret));
-            state = build(&ret.root, &net, &mut tm, ast_book);
-        } else {
-            panic!("Readback failed");
+    fn resize(&mut self, new_size: winit::dpi::PhysicalSize<u32>) {
+        if new_size.width <= 0 || new_size.height <= 0 {
+            return;
         }
+        self.size = new_size;
+        self.config.width = new_size.width;
+        self.config.height = new_size.height;
+        self.surface.configure(&self.device, &self.config);
     }
+
+    fn input(&mut self, event: &WindowEvent) -> bool {
+        false // do not capture
+    }
+
+    fn update(&mut self) {
+        // TODO
+    }
+
+    fn render(&mut self) -> Result<(), wgpu::SurfaceError> {
+        let output = self.surface.get_current_texture()?;
+        let view = output.texture.create_view(&Default::default());
+        let mut encoder = self.device.create_command_encoder(&wgpu::CommandEncoderDescriptor { label: None });
+
+        let _render_pass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
+            label: Some("Render pass"),
+            color_attachments: &[Some(wgpu::RenderPassColorAttachment {
+                view: &view,
+                resolve_target: None,
+                ops: wgpu::Operations {
+                    load: wgpu::LoadOp::Clear(wgpu::Color {
+                        r: 0.1,
+                        g: 0.2,
+                        b: 0.3,
+                        a: 1.0,
+                    }),
+                    store: wgpu::StoreOp::Store,
+                },
+            })],
+            depth_stencil_attachment: None,
+            occlusion_query_set: None,
+            timestamp_writes: None,
+        });
+        drop(_render_pass);
+        
+        self.queue.submit(std::iter::once(encoder.finish()));
+        output.present();
+
+        Ok(())
+    }
+}
+
+async fn run(event_loop: EventLoop<()>, window: Window) {
+    
+    let mut state = State::new(&window).await;
+
+    let _ = event_loop.run(move |event, control_flow| {
+        let event = match event {
+            Event::AboutToWait => {
+                state.window().request_redraw();
+                return; // HACK?
+            }
+            Event::WindowEvent { ref event, window_id } if window_id == state.window().id() => {
+                event
+            }
+            _ => {
+                return
+            }
+        };
+        if state.input(event) {
+            return;
+        }
+        match event {
+            WindowEvent::CloseRequested => control_flow.exit(),
+            WindowEvent::RedrawRequested => {
+                state.update();
+                match state.render() {
+                    Ok(_) => {}
+                    Err(wgpu::SurfaceError::Lost) => state.resize(state.size),
+                    Err(wgpu::SurfaceError::OutOfMemory) => control_flow.exit(),
+                    Err(e) => eprintln!("{:?}", e),
+                };
+            },
+            WindowEvent::Resized(physical_size) => state.resize(*physical_size),
+            _ => {}
+        };
+    });
 }
 
 fn main() {
-    let path = "game/main.hvm";
-    let code = std::fs::read_to_string(path).expect("Unable to read file");
-    let ast_book = ast::Book::parse(&code).unwrap();
-    let hvm_book = ast_book.build();
-    run(&ast_book, &hvm_book);
+    let event_loop = EventLoop::new().unwrap();
+    let window = WindowBuilder::new().build(&event_loop).unwrap();
+
+    // app::run_file("game/main.hvm");
+
+    env_logger::init();
+    pollster::block_on(run(event_loop, window));
 }
