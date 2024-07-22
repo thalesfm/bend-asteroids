@@ -1,6 +1,10 @@
-@Enum/A = (a (b (c (d ((@Enum/A/tag (a (b (c (d e))))) e)))))
+@List/Cons = (a (b ((@List/Cons/tag (a (b c))) c)))
 
-@Enum/A/tag = 0
+@List/Cons/tag = 1
+
+@List/Nil = ((@List/Nil/tag a) a)
+
+@List/Nil/tag = 0
 
 @Math/PI = 3.1416016
 
@@ -23,15 +27,18 @@
 
 @api/Command/DrawLine/tag = 1
 
-@draw = (* b)
+@draw = (* f)
+  & @List/Cons ~ (b (e f))
   & @api/Command/Clear ~ (a b)
   & @api/Color ~ (0.8999939 (0.30000305 (0.8999939 (1.0 a))))
+  & @List/Cons ~ (d (@List/Nil e))
+  & @api/Command/DrawLine ~ (50.0 (50.0 (100.0 (100.0 (c d)))))
+  & @api/Color ~ (1.0 (1.0 (1.0 (1.0 c))))
 
 @init = 0.0
 
-@main = b
-  & @api/Command/Clear ~ (a b)
-  & @api/Color ~ (0.8999939 (0.30000305 (0.8999939 (1.0 a))))
+@main = a
+  & @api/App ~ (@init (@tick (@draw a)))
 
 @math/cos = ($([%] $(a $([-] $(@Math/PI {$([^] $(2.0 $([:/0x0400000] b))) {$([^] $(4.0 $([:/0x041C000] c))) {$([^] $(6.0 $([:/0x0443400] d))) $([^] $(8.0 $([:/0x0471D80] e)))}}})))) f)
   & $(b $([-] $(c $([+] $(d $([-] $(e f))))))) ~ [+0x0BF8000]

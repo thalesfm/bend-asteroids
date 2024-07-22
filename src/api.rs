@@ -40,10 +40,10 @@ impl FromHvm for Command {
                 }
                 "api/Command/DrawLine/tag" => {
                     let x1 = f32::from_hvm(args.get(1)?)?;
-                    let y1 = f32::from_hvm(args.get(1)?)?;
-                    let x2 = f32::from_hvm(args.get(1)?)?;
-                    let y2 = f32::from_hvm(args.get(1)?)?;
-                    let color = Color::from_hvm(args.get(1)?)?;
+                    let y1 = f32::from_hvm(args.get(2)?)?;
+                    let x2 = f32::from_hvm(args.get(3)?)?;
+                    let y2 = f32::from_hvm(args.get(4)?)?;
+                    let color = Color::from_hvm(args.get(5)?)?;
                     Some(Command::DrawLine { x1, y1, x2, y2, color })
                 }
                 _ => None,

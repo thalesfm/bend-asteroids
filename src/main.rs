@@ -23,27 +23,17 @@ async fn main() {
     let mut state = app.init().unwrap();
 
     loop {
-        clear_background(Color::new(0.1, 0.2, 0.3, 1.0));
-        let value = app.draw(state.clone()).unwrap();
+        let commands = app.draw(state.clone()).unwrap();
+        let commands = from_hvm::<Vec<Command>>(&commands).unwrap_or(vec![]);
 
-        /*
-        // println!("{:?}\n", value);
-        println!("{}", value.show());
-        match &value.root {
-            hvm::ast::Tree::Con { fst, snd } => {
-                if let hvm::ast::Tree::Var { .. } = **snd {
-                    let args = convert::call_args(&fst);
-                    println!("args: {:?}", args);
-                }
+        for command in commands {
+            match command {
+                Command::Clear { color } => clear_background(color),
+                Command::DrawLine { x1, y1, x2, y2, color } => draw_line(x1, y1, x2, y2, 5.0, color),
             }
-            _ => {}
         }
-        */
 
-        // let value = from_hvm::<f32>(&value);
-        // let value = from_hvm::<Vec<u32>>(&value);
-        let value = from_hvm::<Command>(&value);
-        draw_text(format!("value: {:?}", value).as_str(), 64.0, 64.0, 30.0, WHITE);
+        // draw_text(format!("value: {:?}", value).as_str(), 64.0, 64.0, 30.0, WHITE);
         state = app.tick(state).unwrap();
         next_frame().await
     }
