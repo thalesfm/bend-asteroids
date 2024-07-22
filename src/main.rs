@@ -2,7 +2,7 @@ mod app;
 mod convert;
 
 use app::App;
-use convert::FromHvm;
+use convert::{from_hvm, FromHvm};
 use macroquad::prelude::*;
 
 fn window_conf() -> Conf {
@@ -22,9 +22,10 @@ async fn main() {
 
     loop {
         clear_background(Color::new(0.1, 0.2, 0.3, 1.0));
-        let value = u32::from_hvm(&state);
-        draw_text(format!("state: {:?}", value).as_str(), 64.0, 64.0, 30.0, WHITE);
-        state = app.update(state).unwrap();
+        let value = app.draw(state.clone()).unwrap();
+        let value = from_hvm::<f32>(&value);
+        draw_text(format!("value: {:?}", value).as_str(), 64.0, 64.0, 30.0, WHITE);
+        state = app.tick(state).unwrap();
         next_frame().await
     }
 }

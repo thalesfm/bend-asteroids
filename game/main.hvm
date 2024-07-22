@@ -1,25 +1,47 @@
-@List/Cons = (a (b ((@List/Cons/tag (a (b c))) c)))
+@Math/PI = 3.1416016
 
-@List/Cons/tag = 1
+@Math/radians = ($([*] $(a b)) b)
+  & @Math/PI ~ $([:/0x0433400] a)
 
-@List/Nil = ((@List/Nil/tag a) a)
+@Math/sqrt = ($([^] $(0.5 a)) a)
 
-@List/Nil/tag = 0
+@WHITE = a
+  & @api/Color ~ (1.0 (1.0 (1.0 (1.0 a))))
 
-@app/App = (a (b (c ((@app/App/tag (a (b (c d)))) d))))
+@api/App = (a (b (c ((@api/App/tag (a (b (c d)))) d))))
 
-@app/App/tag = 0
+@api/App/tag = 0
 
-@draw = (* c)
-  & @List/Cons ~ (1 (b c))
-  & @List/Cons ~ (2 (a b))
-  & @List/Cons ~ (3 (@List/Nil a))
+@api/Color = (a (b (c (d ((@api/Color/tag (a (b (c (d e))))) e)))))
 
-@init = 0
+@api/Color/tag = 0
 
-@main = a
-  & @draw ~ (@init a)
+@api/Command/Clear = (a ((@api/Command/Clear/tag (a b)) b))
 
-@tick = ($([+0x0000001] a) a)
+@api/Command/Clear/tag = 0
+
+@api/Command/DrawLine = (a (b (c (d (e ((@api/Command/DrawLine/tag (a (b (c (d (e f)))))) f))))))
+
+@api/Command/DrawLine/tag = 1
+
+@draw = ($([:/0x0427000] a) b)
+  & @math/cos ~ (a b)
+
+@init = 0.0
+
+@main = c
+  & @math/sin ~ (a $([-] $(b c)))
+  & @Math/radians ~ (45.0 a)
+  & @Math/sqrt ~ (2.0 $([:/0x0400000] b))
+
+@math/cos = ($([%] $(a $([-] $(@Math/PI {$([^] $(2.0 $([:/0x0400000] b))) {$([^] $(4.0 $([:/0x041C000] c))) $([^] $(6.0 $([:/0x0443400] d)))}})))) e)
+  & $(b $([-] $(c $([+] $(d e))))) ~ [+0x0BF8000]
+  & $(@Math/PI a) ~ [*0x0400000]
+
+@math/sin = ($([%] $(a $([-] $(@Math/PI {b {$([^] $(3.0 $([:/0x040C000] c))) {$([^] $(5.0 $([:/0x042F000] d))) $([^] $(7.0 $([:/0x0459D80] e)))}}})))) f)
+  & $(b $([+] $(c $([-] $(d $([+] $(e f))))))) ~ [*0x0BF8000]
+  & $(@Math/PI a) ~ [*0x0400000]
+
+@tick = ($([+0x03F8000] a) a)
 
 

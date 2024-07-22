@@ -44,7 +44,7 @@ impl<'a> App<'a> {
         ast::Net::readback(&self.net, &self.hvm_book)
     }
 
-    pub fn update(&mut self, state: State) -> Option<State> {
+    pub fn tick(&mut self, state: State) -> Option<State> {
         let tick_id = self.hvm_book.defs.iter().position(|def| def.name == "tick").unwrap();
 
         assert!(self.tm.get_resources(&self.net, 1, 1, 0));
@@ -52,8 +52,23 @@ impl<'a> App<'a> {
         let state = build(&state.root, &self.net, &mut self.tm, &self.ast_book);
 
         self.net.vars_create(hvm::ROOT.get_val() as usize, hvm::NONE);
-        self.net.node_create(self.tm.nloc[1], hvm::Pair::new(state, hvm::ROOT));
-        self.tm.rbag.push_redex(hvm::Pair::new(hvm::Port::new(hvm::REF, tick_id as u32), hvm::Port::new(hvm::CON, self.tm.nloc[1] as u32)));
+        self.net.node_create(self.tm.nloc[0], hvm::Pair::new(state, hvm::ROOT));
+        self.tm.rbag.push_redex(hvm::Pair::new(hvm::Port::new(hvm::REF, tick_id as u32), hvm::Port::new(hvm::CON, self.tm.nloc[0] as u32)));
+        self.tm.evaluator(&self.net, &self.hvm_book);
+
+        ast::Net::readback(&self.net, &self.hvm_book)
+    }
+
+    pub fn draw(&mut self, state: State) -> Option<State> {
+        let draw_id = self.hvm_book.defs.iter().position(|def| def.name == "draw").unwrap();
+
+        assert!(self.tm.get_resources(&self.net, 1, 1, 0));
+
+        let state = build(&state.root, &self.net, &mut self.tm, &self.ast_book);
+
+        self.net.vars_create(hvm::ROOT.get_val() as usize, hvm::NONE);
+        self.net.node_create(self.tm.nloc[0], hvm::Pair::new(state, hvm::ROOT));
+        self.tm.rbag.push_redex(hvm::Pair::new(hvm::Port::new(hvm::REF, draw_id as u32), hvm::Port::new(hvm::CON, self.tm.nloc[0] as u32)));
         self.tm.evaluator(&self.net, &self.hvm_book);
 
         ast::Net::readback(&self.net, &self.hvm_book)

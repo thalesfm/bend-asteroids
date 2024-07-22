@@ -2,8 +2,53 @@
 use hvm::hvm;
 use ::hvm::ast::*;
 
-pub trait FromHvm<T>: Sized {
-    fn from_hvm(value: T) -> Option<Self>;
+use bend::fun::parser;
+
+pub trait FromHvm: Sized {
+    fn from_hvm(value: &Tree) -> Option<Self>;
+}
+
+pub fn from_hvm<T: FromHvm>(net: &Net) -> Option<T> {
+    // TODO: Check that rbag is empty
+    return <T as FromHvm>::from_hvm(&net.root)
+}
+
+impl FromHvm for f32 {
+    fn from_hvm(tree: &Tree) -> Option<Self> {
+        let val = match tree {
+            Tree::Num { val } => Some(val),
+            _ => None,
+        }?;
+        let numb = hvm::Numb(val.0);
+        numb.get_f24().into()
+    }
+}
+
+impl FromHvm for u32 {
+    fn from_hvm(tree: &Tree) -> Option<Self> {
+        let val = match tree {
+            Tree::Num { val } => Some(val),
+            _ => None,
+        }?;
+        let numb = hvm::Numb(val.0);
+        numb.get_u24().into()
+    }
+}
+
+impl<T> FromHvm for Vec<T> where T: FromHvm {
+    fn from_hvm(tree: &Tree) -> Option<Self> {
+        if !is_list(tree) {
+            return None
+        }
+        let mut vec = Vec::new();
+        let mut lst = tree;
+        while is_list_cons(lst) {
+            let head = list_head(lst)?;
+            vec.push(T::from_hvm(head)?);
+            lst = list_tail(lst)?;
+        }
+        vec.into()
+    }
 }
 
 pub trait TreeExt {
@@ -24,40 +69,6 @@ impl TreeExt for Tree {
             Tree::Con { fst, snd } => Some((fst.as_ref(), snd.as_ref())),
             _ => None,
         }
-    }
-}
-
-impl<'a, T> FromHvm<&'a Net> for T where T: FromHvm<&'a Tree> {
-    fn from_hvm(net: &'a Net) -> Option<Self> {
-        // TODO: Check that rbag is empty
-        return <T as FromHvm<&Tree>>::from_hvm(&net.root)
-    }
-}
-
-impl FromHvm<&Tree> for u32 {
-    fn from_hvm(tree: &Tree) -> Option<Self> {
-        let val = match tree {
-            Tree::Num { val } => Some(val),
-            _ => None,
-        }?;
-        let numb = hvm::Numb(val.0);
-        numb.get_u24().into()
-    }
-}
-
-impl<'a, T> FromHvm<&'a Tree> for Vec<T> where T: FromHvm<&'a Tree> {
-    fn from_hvm(tree: &'a Tree) -> Option<Self> {
-        if !is_list(tree) {
-            return None
-        }
-        let mut vec = Vec::new();
-        let mut lst = tree;
-        while is_list_cons(lst) {
-            let head = list_head(lst)?;
-            vec.push(T::from_hvm(head)?);
-            lst = list_tail(lst)?;
-        }
-        vec.into()
     }
 }
 
