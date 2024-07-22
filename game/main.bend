@@ -15,10 +15,20 @@ def draw(state): # State -> [Command]
   # commands = List/Cons(Command/Clear(Color(0.9, 0.3, 0.9, 1.0)), commands)
   # commands = List/Cons(Command/DrawLine(0, 0, 1, 1, WHITE))
   # return commands
-  return cos(state / 60.0)
+
+  # return cos(state / 60.0)
+
+  # return [1, 2, 3]
+  return Command/Clear(Color(0.9, 0.3, 0.9, 1.0))
+
+type Enum = (A b c d e)
 
 def main(): # -> App
   # return App { init: init, tick: tick, draw: draw }
 
   # Should return 0
-  return sin(Math/radians(45.0)) - (Math/sqrt(2.0) / 2.0)
+  # return sin(Math/radians(45.0)) - (Math/sqrt(2.0) / 2.0)
+
+  # return (List/Cons(0, List/Nil), Enum/A(1, 2, 3, 4))
+
+  return Command/Clear(Color(0.9, 0.3, 0.9, 1.0))
