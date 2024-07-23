@@ -3,11 +3,27 @@ use macroquad::color::*;
 use crate::hvm::FromHvm;
 use crate::hvm::decode::*;
 
+/*
+pub struct App {
+    init: Port,
+    tick: Port,
+    draw: Port,
+}
+*/
+
 #[derive(Debug)]
 pub enum Command {
     Clear { color: Color },
     DrawLine { x1: f32, y1: f32, x2: f32, y2: f32, color: Color },
 }
+
+/*
+impl FromHvm for App {
+    fn from_hvm(tree: &Tree) -> Option<App> {
+        todo!()
+    }
+}
+*/
 
 impl FromHvm for Color {
     fn from_hvm(tree: &Tree) -> Option<Color> {

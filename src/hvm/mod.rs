@@ -107,21 +107,7 @@ impl<'a> HvmState<'a> {
         Some(tree)
     }
 
-    // pub fn build(&mut self, tree: &Tree) -> Port {
     pub fn push_raw(&mut self, tree: &Tree) -> Port {
-        /*
-        let mut name_to_fid = BTreeMap::new();
-        // let mut fid_to_name = BTreeMap::new();
-        // fid_to_name.insert(0, "main".to_string());
-        name_to_fid.insert("main".to_string(), 0);
-        for (_i, (name, _)) in book.defs.iter().enumerate() {
-          if name != "main" {
-            // fid_to_name.insert(name_to_fid.len() as hvm::hvm::Val, name.clone());
-            name_to_fid.insert(name.clone(), name_to_fid.len() as hvm::hvm::Val);
-          }
-        }
-        */
-
         let mut name_to_fid = BTreeMap::new();
         name_to_fid.insert("main".to_string(), 0); // ?????
         for (fid, def) in self.book.defs.iter().enumerate() {

@@ -1,3 +1,4 @@
 #!/usr/bin/env bash
-cd game
-bend gen-hvm main.bend > main.hvm
+cp ./src/api.bend ./bend-game/api.bend
+bend gen-hvm ./bend-game/main.bend > main.hvm
+rm ./bend-game/api.bend

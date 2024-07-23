@@ -1,5 +1,4 @@
-from ./api import (App, Command)
-from ./api import Color
+from ./api import (App, Color, Command)
 from ./math import *
 
 WHITE = (Color 1.0 1.0 1.0 1.0)
@@ -11,11 +10,6 @@ def tick(state): # State -> State
   return state + 1.0
 
 def draw(state): # State -> [Command]
-  # commands = []
-  # commands = List/Cons(Command/Clear(Color(0.9, 0.3, 0.9, 1.0)), commands)
-  # commands = List/Cons(Command/DrawLine(0.0, 0.0, 1.0, 1.0, WHITE))
-  # return commands
-
   white = Color(1.0, 1.0, 1.0, 1.0)
   return [ Command/Clear(Color(0.9, 0.3, 0.9, 1.0))
          , Command/DrawLine(50.0, 50.0, 100.0, 100.0, white)

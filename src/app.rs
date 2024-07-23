@@ -1,6 +1,4 @@
-// use crate::convert::FromHvm;
-// use ::hvm::{ast, hvm};
-use std::collections::BTreeMap;
+use crate::api::*;
 use crate::hvm;
 
 type State = hvm::Tree;
@@ -30,10 +28,10 @@ impl<'a> App<'a> {
         self.hvm.pop_raw(state1)
     }
 
-    pub fn draw(&mut self, state: State) -> Option<State> {
+    pub fn draw(&mut self, state: State) -> Option<Vec<Command>> {
         let draw = self.hvm.get_ref("draw")?;
         let state = self.hvm.push_raw(&state);
         let result = self.hvm.app(draw, state)?;
-        self.hvm.pop_raw(result)
+        self.hvm.pop(result)
     }
 }

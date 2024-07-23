@@ -2,26 +2,9 @@ mod api;
 mod app;
 mod hvm;
 
+use macroquad::prelude::*;
 use api::Command;
 use app::App;
-// use convert::{from_hvm, FromHvm};
-use hvm::FromHvm;
-use macroquad::prelude::*;
-
-fn main_() {
-    // let book = crate::hvm::load_book_from_file("./game/main.hvm").unwrap();
-    // let mut hvm = crate::hvm::HvmState::new(book);
-    // let result = hvm.run();
-    // println!("Result: {:?}", result);
-
-    let mut app = App::load_from_file("game/main.hvm").unwrap();
-    let mut state = app.init().unwrap();
-    println!("state0: {}", state.show());
-    for i in 1..10 {
-        state = app.tick(state).unwrap();
-        println!("state{}: {}", i, state.show());
-    }
-}
 
 fn window_conf() -> Conf {
     Conf {
@@ -35,12 +18,12 @@ fn window_conf() -> Conf {
 
 #[macroquad::main(window_conf)]
 async fn main() {
-    let mut app = App::load_from_file("game/main.hvm").unwrap();
+    let mut app = App::load_from_file("main.hvm").unwrap();
     let mut state = app.init().unwrap();
 
     loop {
         let commands = app.draw(state.clone()).unwrap();
-        let commands: Vec<Command> = FromHvm::from_hvm(&commands).unwrap_or(vec![]);
+        // let commands: Vec<Command> = FromHvm::from_hvm(&commands).unwrap_or(vec![]);
 
         for command in commands {
             match command {
