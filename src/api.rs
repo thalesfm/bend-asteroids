@@ -1,6 +1,7 @@
 use hvm::ast::*;
 use macroquad::color::*;
-use crate::convert::*;
+use crate::hvm::FromHvm;
+use crate::hvm::decode::*;
 
 #[derive(Debug)]
 pub enum Command {
