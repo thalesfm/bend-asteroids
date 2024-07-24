@@ -26,6 +26,15 @@ impl<'a> App<'a> {
         let state0 = self.hvm.push_raw(&state);
         let state1 = self.hvm.app(update, state0)?;
         self.hvm.pop_raw(state1)
+
+        // let update = self.hvm.get_ref("tick")?;
+        // let state0 = self.hvm.push_raw(&state);
+        // self.hvm.pop_raw(state0)
+
+        // let update = self.hvm.get_ref("tick")?;
+        // let state0 = self.hvm.push_raw(&state);
+        // let state1 = self.hvm.apply(update, &[state0])?;
+        // Some(state1)
     }
 
     pub fn draw(&mut self, state: State) -> Option<Vec<Command>> {

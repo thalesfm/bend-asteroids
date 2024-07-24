@@ -72,17 +72,21 @@ impl<'a> HvmState<'a> {
         Some(ret)
     }
 
-    pub fn apply(&mut self, fun: Port, args: &[Port]) -> Option<Port> {
+    pub fn apply(&mut self, fun: Port, args: &[Port]) -> Option<Tree> {
+        /*
         let mut acc = fun;
         for arg in args {
             acc = self.app(acc, *arg)?;
         }
         Some(acc)
-        /*
+        */
+        // /*
         assert!(self.tmem.get_resources(&self.gnet, 1, args.len(), 1));
 
-        let out = Port::new(hvm::hvm::VAR, self.tmem.vloc[0] as u32);
-        self.gnet.vars_create(self.tmem.vloc[0], hvm::hvm::NONE);
+        // let out = Port::new(hvm::hvm::VAR, self.tmem.vloc[0] as u32);
+        // self.gnet.vars_create(self.tmem.vloc[0], hvm::hvm::NONE);
+        let out = hvm::hvm::ROOT;
+        self.gnet.vars_create(hvm::hvm::ROOT.get_val() as usize, hvm::hvm::NONE);
 
         let mut snd = out;
         for (i, arg) in args.into_iter().enumerate() {
@@ -93,8 +97,12 @@ impl<'a> HvmState<'a> {
         self.tmem.rbag.push_redex(Pair::new(fun, snd));
         // self.tmem.evaluator(&self.gnet, &self.book);
         // self.pop_raw(hvm::hvm::ROOT)
-        Some(out)
-        */
+
+        // Some(out)
+
+        self.tmem.evaluator(&self.gnet, &self.book);
+        self.readback(hvm::hvm::ROOT)
+        // */
     }
 
     fn readback(&self, port: Port) -> Option<Tree> {
