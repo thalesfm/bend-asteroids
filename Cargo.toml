@@ -4,6 +4,6 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-bend-lang = "0.2.36"
+bend-lang = { git = "https://github.com/HigherOrderCO/Bend.git", rev = "b53568a6" }
 hvm = "2.0"
 macroquad = "0.4"

@@ -2,17 +2,42 @@ mod api;
 mod app;
 mod hvm;
 
-use macroquad::prelude::*;
-use api::Command;
-use app::App;
-use hvm::FromHvm;
+use std::path::Path;
+// use std::process::ExitCode;
 
-fn main() {
-    let book = hvm::load_book_from_file("main.hvm").unwrap();
-    let mut hvm = hvm::HvmState::new(book);
-    let main = hvm.get_ref("main").unwrap();
-    let state = hvm.pop_raw(main).unwrap();
-    println!("state: {:?}", state);
+use bend::{CompileOpts, RunOpts, load_file_to_book, run_book};
+use bend::diagnostics::{Diagnostics, DiagnosticsConfig, Severity};
+use bend::fun::{Book, Name, Pattern, Term};
+use bend::imports::DefaultLoader;
+use macroquad::prelude::*;
+
+use api::Command;
+// use app::App;
+// use hvm::FromHvm;
+
+type State = Term;
+
+fn load_book(path: &Path, diag: DiagnosticsConfig) -> Result<Book, Diagnostics> {
+    let package_loader = DefaultLoader::new(path);
+    let mut book = load_file_to_book(path, package_loader, diag)?;
+    // book.entrypoint = entrypoint.map(Name::new);
+    book.entrypoint = None;
+    Ok(book)
+}
+
+fn my_run_book(book: &Book, diag: DiagnosticsConfig, args: Vec<Term>) -> Option<Term> {
+    let compile_opts = CompileOpts::default();
+    let run_opts = RunOpts::default();
+
+    let result = run_book(book.clone(), run_opts, compile_opts, diag, Some(args), "run").ok().unwrap();
+    if let Some((term, stats, diags)) = result {
+        // eprint!("{diags}");
+        // println!("Result:\n{}", term.display_pretty(0));
+        // println!("Result: {}", term);
+        Some(term)
+    } else {
+        None
+    }
 }
 
 fn window_conf() -> Conf {
@@ -25,17 +50,46 @@ fn window_conf() -> Conf {
     }
 }
 
-// #[macroquad::main(window_conf)]
-async fn main_() {
-    let mut app = App::load_from_file("main.hvm").unwrap();
-    let mut state = app.init().unwrap();
-    // println!("state: {:?}", state);
-    println!("state: {:?}", f32::from_hvm(&state));
+fn init(book: &Book, diag: DiagnosticsConfig) -> Option<State> {
+    let fun = Term::rfold_lams(
+        Term::Var { nam: Name::new("init") },
+        [Some(Name::new("tag")),
+         Some(Name::new("init")),
+         Some(Name::new("tick")),
+         Some(Name::new("draw"))].into_iter());
+    my_run_book(book, diag, vec![fun])
+}
 
+fn tick(book: &Book, diag: DiagnosticsConfig, state: &State) -> Option<State> {
+    let fun = Term::rfold_lams(
+        Term::app(Term::Var { nam: Name::new("tick") }, state.clone()),
+        [Some(Name::new("tag")),
+         Some(Name::new("init")),
+         Some(Name::new("tick")),
+         Some(Name::new("draw"))].into_iter());
+    my_run_book(book, diag, vec![fun])
+}
+
+fn draw(book: &Book, diag: DiagnosticsConfig, state: &State) -> Option<Vec<Command>> {
+    return None;
+}
+
+#[macroquad::main(window_conf)]
+async fn main() {
+    let diagnostics_cfg = DiagnosticsConfig::new(Severity::Allow, false);
+    let book = match load_book(Path::new("./bend-game/main.bend"), diagnostics_cfg) {
+        Ok(book) => book,
+        Err(diags) => {
+            eprint!("{}", diags);
+            return; // ExitCode::FAILURE;
+        }
+    };
+
+    let mut state = init(&book, diagnostics_cfg).unwrap();
     loop {
-        // let commands = app.draw(state.clone()).unwrap();
-        // println!("commands: {:?}", commands);
-        let commands = vec![];
+        /*
+        let commands = draw(&book, diagnostics_cfg, &state).unwrap();
+        println!("commands: {:?}", commands);
 
         for command in commands {
             match command {
@@ -43,10 +97,12 @@ async fn main_() {
                 Command::DrawLine { x1, y1, x2, y2, color } => draw_line(x1, y1, x2, y2, 5.0, color),
             }
         }
+        */
 
-        // draw_text(format!("value: {:?}", value).as_str(), 64.0, 64.0, 30.0, WHITE);
-        state = app.tick(state).unwrap();
-        println!("state: {:?}", f32::from_hvm(&state));
+        clear_background(BLACK);
+        draw_text(format!("state: {}", state.display_pretty(0)).as_str(), 64.0, 64.0, 30.0, WHITE);
+        state = tick(&book, diagnostics_cfg, &state).unwrap();
+        // println!("state: {:?}", state);
         next_frame().await
     }
 }

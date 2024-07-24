@@ -50,9 +50,7 @@
 
 @api/Command/DrawLine/tag = 1
 
-@api/CommandBuffer/flush = (b d)
-  & @api/List/map ~ ((a a) (c d))
-  & @DiffList/to_list ~ (b c)
+@api/CommandBuffer/flush = @DiffList/to_list
 
 @api/CommandBuffer/new = @DiffList/new
 
@@ -74,17 +72,7 @@
   & @api/CommandBuffer/push ~ (a (g h))
   & @api/Command/DrawLine ~ (b (c (d (e (f g)))))
 
-@draw = ((@draw__C2 a) a)
-
-@draw__C0 = b
-  & @api/clear ~ (@api/CommandBuffer/new (a b))
-  & @api/Color ~ (0.8999939 (0.30000305 (0.8999939 (1.0 a))))
-
-@draw__C1 = (a c)
-  & @api/CommandBuffer/flush ~ (b c)
-  & @draw_ship ~ (@draw__C0 (a b))
-
-@draw__C2 = (?((@draw__C1 *) a) a)
+@draw = (a a)
 
 @draw_ship = (a ((@draw_ship__C4 (a b)) b))
 
@@ -114,7 +102,23 @@
 
 @draw_ship__C4 = (?((@draw_ship__C3 *) a) a)
 
-@init = 0.0
+@init = a
+  & @State ~ (@init__C4 a)
+
+@init__C0 = a
+  & @to_f24 ~ (@SCREEN_HEIGHT a)
+
+@init__C1 = a
+  & @to_f24 ~ (@SCREEN_WIDTH a)
+
+@init__C2 = a
+  & @init__C0 ~ $([:/0x0400000] a)
+
+@init__C3 = a
+  & @init__C1 ~ $([:/0x0400000] a)
+
+@init__C4 = a
+  & @Ship ~ (@init__C3 (@init__C2 (0.0 (0.0 (0.0 a)))))
 
 @main = c
   & @draw ~ (b c)
@@ -132,6 +136,18 @@
   & $(b $([+] $(c $([-] $(d $([+] $(e f))))))) ~ [*0x0BF8000]
   & $(@Math/PI a) ~ [*0x0400000]
 
-@tick = ($([+0x03F8000] a) a)
+@tick = ((@tick__C3 a) a)
+
+@tick__C0 = ($([+0x03F8000] a) (b (c (d (e g)))))
+  & @State ~ (f g)
+  & @Ship ~ (a (b (c (d (e f)))))
+
+@tick__C1 = (?((@tick__C0 *) a) a)
+
+@tick__C2 = ((@tick__C1 a) a)
+
+@tick__C3 = (?((@tick__C2 *) a) a)
+
+@to_f24 = ($([f24] ret) ret)
 
 

@@ -10,9 +10,9 @@ use std::collections::BTreeMap;
 // use std::marker::PhantomData;
 
 pub struct HvmState<'a> {
-    gnet: GNet<'a>,
-    tmem: TMem,
-    book: Book,
+    pub gnet: GNet<'a>,
+    pub tmem: TMem,
+    pub book: Book,
     // defs: ...
 }
 
@@ -56,11 +56,12 @@ impl<'a> HvmState<'a> {
     }
 
     pub fn pop_raw(&mut self, port: Port) -> Option<Tree> {
-        assert!(self.tmem.get_resources(&self.gnet, 1, 0, 1));
-        self.gnet.vars_create(hvm::hvm::ROOT.get_val() as usize, hvm::hvm::NONE);
-        self.tmem.rbag.push_redex(Pair::new(port, hvm::hvm::ROOT));
-        self.tmem.evaluator(&self.gnet, &self.book);
-        self.readback(hvm::hvm::ROOT)
+        // assert!(self.tmem.get_resources(&self.gnet, 1, 0, 0));
+        // self.gnet.vars_create(hvm::hvm::ROOT.get_val() as usize, hvm::hvm::NONE);
+        // self.tmem.rbag.push_redex(Pair::new(port, hvm::hvm::ROOT));
+        // self.tmem.evaluator(&self.gnet, &self.book);
+        // self.readback(hvm::hvm::ROOT)
+        self.readback(port)
     }
 
     pub fn app(&mut self, fun: Port, arg: Port) -> Option<Port> {
@@ -110,8 +111,9 @@ impl<'a> HvmState<'a> {
         for (fid, def) in self.book.defs.iter().enumerate() {
             name_to_fid.insert(fid as hvm::hvm::Val, def.name.clone());
         }
-        // let root = self.gnet.enter(hvm::hvm::ROOT);
-        let tree = Tree::readback(&self.gnet, port, &name_to_fid)?;
+        // let tree = Tree::readback(&self.gnet, port, &name_to_fid)?;
+        let root = self.gnet.enter(port);
+        let tree = Tree::readback(&self.gnet, root, &name_to_fid)?;
         Some(tree)
     }
 
