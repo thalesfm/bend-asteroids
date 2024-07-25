@@ -1,6 +1,7 @@
 mod api;
-mod app;
-mod hvm;
+// mod app;
+// mod hvm;
+mod from_term;
 
 use std::path::Path;
 // use std::process::ExitCode;
@@ -14,6 +15,7 @@ use macroquad::prelude::*;
 use api::Command;
 // use app::App;
 // use hvm::FromHvm;
+use from_term::FromTerm;
 
 type State = Term;
 
@@ -29,7 +31,7 @@ fn my_run_book(book: &Book, diag: DiagnosticsConfig, args: Vec<Term>) -> Option<
     let compile_opts = CompileOpts::default();
     let run_opts = RunOpts::default();
 
-    let result = run_book(book.clone(), run_opts, compile_opts, diag, Some(args), "run").ok().unwrap();
+    let result = run_book(book.clone(), run_opts, compile_opts, diag, Some(args), "run-c").ok().unwrap();
     if let Some((term, stats, diags)) = result {
         // eprint!("{diags}");
         // println!("Result:\n{}", term.display_pretty(0));
@@ -53,25 +55,23 @@ fn window_conf() -> Conf {
 fn init(book: &Book, diag: DiagnosticsConfig) -> Option<State> {
     let fun = Term::rfold_lams(
         Term::Var { nam: Name::new("init") },
-        [Some(Name::new("tag")),
-         Some(Name::new("init")),
-         Some(Name::new("tick")),
-         Some(Name::new("draw"))].into_iter());
+        [None, Some(Name::new("init")), None, None].into_iter());
     my_run_book(book, diag, vec![fun])
 }
 
 fn tick(book: &Book, diag: DiagnosticsConfig, state: &State) -> Option<State> {
     let fun = Term::rfold_lams(
         Term::app(Term::Var { nam: Name::new("tick") }, state.clone()),
-        [Some(Name::new("tag")),
-         Some(Name::new("init")),
-         Some(Name::new("tick")),
-         Some(Name::new("draw"))].into_iter());
+        [None, None, Some(Name::new("tick")), None].into_iter());
     my_run_book(book, diag, vec![fun])
 }
 
 fn draw(book: &Book, diag: DiagnosticsConfig, state: &State) -> Option<Vec<Command>> {
-    return None;
+    let fun = Term::rfold_lams(
+        Term::app(Term::Var { nam: Name::new("draw") }, state.clone()),
+        [None, None, None, Some(Name::new("draw"))].into_iter());
+    let term = my_run_book(book, diag, vec![fun])?;
+    Vec::<Command>::from_term(&term)
 }
 
 #[macroquad::main(window_conf)]
@@ -87,8 +87,7 @@ async fn main() {
 
     let mut state = init(&book, diagnostics_cfg).unwrap();
     loop {
-        /*
-        let commands = draw(&book, diagnostics_cfg, &state).unwrap();
+        let commands = draw(&book, diagnostics_cfg, &state).unwrap_or(vec![]);
         println!("commands: {:?}", commands);
 
         for command in commands {
@@ -97,10 +96,9 @@ async fn main() {
                 Command::DrawLine { x1, y1, x2, y2, color } => draw_line(x1, y1, x2, y2, 5.0, color),
             }
         }
-        */
 
-        clear_background(BLACK);
-        draw_text(format!("state: {}", state.display_pretty(0)).as_str(), 64.0, 64.0, 30.0, WHITE);
+        // clear_background(BLACK);
+        // draw_text(format!("state: {}", state.display_pretty(0)).as_str(), 64.0, 64.0, 30.0, WHITE);
         state = tick(&book, diagnostics_cfg, &state).unwrap();
         // println!("state: {:?}", state);
         next_frame().await

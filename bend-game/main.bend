@@ -32,7 +32,7 @@ def tick(state): # State -> State
   return State(player)
 
 def draw_ship(buf, ship): # (CommandBuffer, Ship) -> CommandBuffer
-  use white = Color(1.0, 1.0, 1.0, 1.0)
+  white = Color(1.0, 1.0, 1.0, 1.0)
   open Ship: ship
   x1 = ship.x + sin(ship.r) * SHIP_HEIGHT / 2.0
   y1 = ship.x + cos(ship.r) * SHIP_HEIGHT / 2.0
@@ -54,3 +54,4 @@ def draw(state): # State -> [Command]
 
 def main(): # -> App
   return App(init_, tick, draw)
+  # return draw(init_)
