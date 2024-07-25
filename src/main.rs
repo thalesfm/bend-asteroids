@@ -22,6 +22,7 @@ async fn main() {
     let mut state = app.init().unwrap();
 
     loop {
+        println!("state: {}", state.display_pretty(0));
         let commands = app.draw(&state).unwrap_or(vec![]);
         for command in commands {
             match command {

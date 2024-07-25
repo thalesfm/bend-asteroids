@@ -28,7 +28,6 @@ impl App {
     }
 
     pub fn init(&self) -> Result<State, Diagnostics> {
-        let cfg = DiagnosticsConfig::new(Severity::Allow, false);
         let fun = Term::rfold_lams(
             Term::Var { nam: Name::new("init") },
             [None, Some(Name::new("init")), None, None].into_iter());
@@ -36,7 +35,6 @@ impl App {
     }
 
     pub fn tick(&self, state: &State) -> Result<State, Diagnostics> {
-        let cfg = DiagnosticsConfig::new(Severity::Allow, false);
         let fun = Term::rfold_lams(
             Term::app(Term::Var { nam: Name::new("tick") }, state.clone()),
             [None, None, Some(Name::new("tick")), None].into_iter());
@@ -50,7 +48,7 @@ impl App {
         let term = self.run(vec![fun])?;
         let cmds = FromTerm::from_term(&term)
             .ok_or_else(|| {
-                println!("Failed to parse term: {}", term.display_pretty(0));
+                println!("Failed to parse term: {}\n", term.display_pretty(0));
                 "Failed to parse".to_owned()
             })?;
         Ok(cmds)
