@@ -1,46 +1,63 @@
+use std::path::Path;
+
+use bend::{diagnostics, load_file_to_book, run_book, CompileOpts, RunOpts};
+use bend::diagnostics::{Diagnostics, DiagnosticsConfig, Severity};
+use bend::fun::{Book, Name, Pattern, Term};
+use bend::imports::DefaultLoader;
+use macroquad::prelude::*;
+
 use crate::api::*;
-use crate::hvm;
+use crate::api::Command;
+use crate::from_term::FromTerm;
 
-type State = hvm::Tree;
+pub type State = Term;
 
-pub struct App<'a> {
-    hvm: hvm::HvmState<'a>,
+pub struct App {
+    book: Book,
 }
 
-impl<'a> App<'a> {
-    pub fn load_from_file(path: &str) -> Option<App> {
-        let book = hvm::load_book_from_file(path)?;
-        let hvm = hvm::HvmState::new(book);
-        Some(App { hvm })
+impl App {
+    pub fn load_from_file(path: &str) -> Result<App, Diagnostics> {
+        let path = Path::new(path);
+        let package_loader = DefaultLoader::new(path);
+        let diagnostics_cfg = DiagnosticsConfig::new(Severity::Allow, false);
+        let mut book = load_file_to_book(path, package_loader, diagnostics_cfg)?;
+        // book.entrypoint = entrypoint.map(Name::new);
+        book.entrypoint = None;
+        Ok(App { book })
     }
 
-    pub fn init(&mut self) -> Option<State> {
-        let init = self.hvm.get_ref("init")?;
-        self.hvm.pop_raw(init)
-        // let state = self.hvm.apply(init, &[])?;
-        // self.hvm.pop_raw(state)
+    pub fn init(&self) -> Result<State, Diagnostics> {
+        let cfg = DiagnosticsConfig::new(Severity::Allow, false);
+        let fun = Term::rfold_lams(
+            Term::Var { nam: Name::new("init") },
+            [None, Some(Name::new("init")), None, None].into_iter());
+        self.run(vec![fun])
     }
 
-    pub fn tick(&mut self, state: State) -> Option<State> {
-        let update = self.hvm.get_ref("tick")?;
-        let state0 = self.hvm.push_raw(&state);
-        let state1 = self.hvm.app(update, state0)?;
-        self.hvm.pop_raw(state1)
-
-        // let update = self.hvm.get_ref("tick")?;
-        // let state0 = self.hvm.push_raw(&state);
-        // self.hvm.pop_raw(state0)
-
-        // let update = self.hvm.get_ref("tick")?;
-        // let state0 = self.hvm.push_raw(&state);
-        // let state1 = self.hvm.apply(update, &[state0])?;
-        // Some(state1)
+    pub fn tick(&self, state: &State) -> Result<State, Diagnostics> {
+        let cfg = DiagnosticsConfig::new(Severity::Allow, false);
+        let fun = Term::rfold_lams(
+            Term::app(Term::Var { nam: Name::new("tick") }, state.clone()),
+            [None, None, Some(Name::new("tick")), None].into_iter());
+        self.run(vec![fun])
     }
 
-    pub fn draw(&mut self, state: State) -> Option<Vec<Command>> {
-        let draw = self.hvm.get_ref("draw")?;
-        let state = self.hvm.push_raw(&state);
-        let result = self.hvm.app(draw, state)?;
-        self.hvm.pop(result)
+    pub fn draw(&self, state: &State) -> Result<Vec<Command>, Diagnostics> {
+        let fun = Term::rfold_lams(
+            Term::app(Term::Var { nam: Name::new("draw") }, state.clone()),
+            [None, None, None, Some(Name::new("draw"))].into_iter());
+        let term = self.run(vec![fun])?;
+        let cmds = FromTerm::from_term(&term).ok_or("Failed to parse".to_owned())?;
+        Ok(cmds)
+    }
+
+    fn run(&self, args: Vec<Term>) -> Result<Term, Diagnostics> {
+        let compile_opts = CompileOpts::default();
+        let diagnostics_cfg = DiagnosticsConfig::new(Severity::Allow, false);
+        let run_opts = RunOpts::default();
+        let result = run_book(self.book.clone(), run_opts, compile_opts, diagnostics_cfg, Some(args), "run-c")?;
+        let (term, _, _) = result.ok_or("Run failed".to_owned())?;
+        Ok(term)
     }
 }

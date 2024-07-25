@@ -10,12 +10,6 @@ pub struct App {
 }
 */
 
-#[derive(Debug)]
-pub enum Command {
-    Clear { color: Color },
-    DrawLine { x1: f32, y1: f32, x2: f32, y2: f32, color: Color },
-}
-
 /*
 impl FromHvm for App {
     fn from_hvm(tree: &Tree) -> Option<App> {
@@ -23,6 +17,12 @@ impl FromHvm for App {
     }
 }
 */
+
+#[derive(Debug)]
+pub enum Command {
+    Clear { color: Color },
+    DrawLine { x1: f32, y1: f32, x2: f32, y2: f32, color: Color },
+}
 
 // FIME: Doesn't work unless the constructor is fully expanded!
 // i.e. this function will be parse (λa (a @api/Color/tag r g b a)))
