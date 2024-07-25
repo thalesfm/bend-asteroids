@@ -2,7 +2,7 @@ use std::path::Path;
 
 use bend::{diagnostics, load_file_to_book, run_book, CompileOpts, RunOpts};
 use bend::diagnostics::{Diagnostics, DiagnosticsConfig, Severity};
-use bend::fun::{Book, Name, Pattern, Term};
+use bend::fun::{Book, Name, Num, Pattern, Term};
 use bend::imports::DefaultLoader;
 use macroquad::prelude::*;
 
@@ -28,30 +28,42 @@ impl App {
     }
 
     pub fn init(&self) -> Result<State, Diagnostics> {
-        let fun = Term::rfold_lams(
+        let arg = Term::rfold_lams(
             Term::Var { nam: Name::new("init") },
-            [None, Some(Name::new("init")), None, None].into_iter());
-        self.run(vec![fun])
+            [None, Some(Name::new("init")), None, None, None].into_iter());
+        self.run(vec![arg])
     }
 
     pub fn tick(&self, state: &State) -> Result<State, Diagnostics> {
-        let fun = Term::rfold_lams(
+        let arg = Term::rfold_lams(
             Term::app(Term::Var { nam: Name::new("tick") }, state.clone()),
-            [None, None, Some(Name::new("tick")), None].into_iter());
-        self.run(vec![fun])
+            [None, None, Some(Name::new("tick")), None, None].into_iter());
+        self.run(vec![arg])
     }
 
     pub fn draw(&self, state: &State) -> Result<Vec<Command>, Diagnostics> {
-        let fun = Term::rfold_lams(
+        let arg = Term::rfold_lams(
             Term::app(Term::Var { nam: Name::new("draw") }, state.clone()),
-            [None, None, None, Some(Name::new("draw"))].into_iter());
-        let term = self.run(vec![fun])?;
+            [None, None, None, Some(Name::new("draw")), None].into_iter());
+        let term = self.run(vec![arg])?;
         let cmds = FromTerm::from_term(&term)
             .ok_or_else(|| {
                 println!("Failed to parse term: {}\n", term.display_pretty(0));
                 "Failed to parse".to_owned()
             })?;
         Ok(cmds)
+    }
+
+    pub fn when(&self, key: KeyCode, state: &State) -> Result<State, Diagnostics> {
+        // Term::call( ... );
+        let arg = Term::rfold_lams(
+            Term::app(
+                Term::app(
+                    Term::Var { nam: Name::new("when") },
+                    Term::Num { val: Num::U24(key as u32) }),
+                state.clone()),
+            [None, None, None, None, Some(Name::new("when"))].into_iter());
+        self.run(vec![arg])
     }
 
     fn run(&self, args: Vec<Term>) -> Result<Term, Diagnostics> {

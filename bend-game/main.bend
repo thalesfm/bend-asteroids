@@ -45,8 +45,21 @@ def draw(state):
   open CommandWriter: cw
   return CommandBuffer/flush(cw.buf)
 
+def when(key, state):
+  open State: state
+  player = state.player
+  open Ship: player
+  player = Ship {
+    px: to_f24(key),
+    py: player.py,
+    dx: 0.0,
+    dy: 0.0,
+    angle: player.angle,
+  }
+  return State(player)
+
 def main(): # App
-  return App(init, tick, draw)
+  return App(init, tick, draw, when)
 
 def draw_ship(ship): # Ship -> (CommandWriter *)
   # use WHITE = Color(1.0, 1.0, 1.0, 1.0) # HACK: Ensures that the color is fully expanded
@@ -73,7 +86,7 @@ def draw_ship(ship): # Ship -> (CommandWriter *)
 # API
 ################################################################################
 
-object App { init, tick, draw }
+object App { init, tick, draw, when }
 
 object Color { r, g, b, a }
 
