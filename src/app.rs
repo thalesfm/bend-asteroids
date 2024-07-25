@@ -48,7 +48,11 @@ impl App {
             Term::app(Term::Var { nam: Name::new("draw") }, state.clone()),
             [None, None, None, Some(Name::new("draw"))].into_iter());
         let term = self.run(vec![fun])?;
-        let cmds = FromTerm::from_term(&term).ok_or("Failed to parse".to_owned())?;
+        let cmds = FromTerm::from_term(&term)
+            .ok_or_else(|| {
+                println!("Failed to parse term: {}", term.display_pretty(0));
+                "Failed to parse".to_owned()
+            })?;
         Ok(cmds)
     }
 
