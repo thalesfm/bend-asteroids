@@ -6,7 +6,7 @@ def wrap(val):
   return CommandWriter(val, CommandBuffer/new)
 
 def tell(buf):
-  return CommandWriter(0, buf)
+  return CommandWriter(*, buf)
 
 def bind(cw1, nxt):
   open CommandWriter: cw1

@@ -1,6 +1,7 @@
 from ./api import *
+from ./api/actions import *
 from ./api/Color import *
-from ./util import *
+from ./utils import *
 
 SCREEN_WIDTH  = 640
 SCREEN_HEIGHT = 480
@@ -34,7 +35,7 @@ def tick(state):
   }
   return State(player, state.pressed)
 
-def do_draw(state):
+def draw(state):
   open State: state
   with CommandWriter:
     * <- clear(BLACK)
@@ -43,10 +44,6 @@ def do_draw(state):
       cw = draw_text("Key pressed", 300.0, 300.0, WHITE)
     else:
       cw = wrap(0)
-  return cw
-
-def draw(state):
-  cw = do_draw(state)
   open CommandWriter: cw
   return CommandBuffer/flush(cw.buf)
 
@@ -54,7 +51,7 @@ def when(key, state):
   open State: state
   return State(state.player, key)
 
-def main(): # App
+def main():
   return App(init, tick, draw, when)
 
 def draw_ship(ship):
@@ -75,10 +72,6 @@ def draw_ship(ship):
     * <- draw_line(x2, y2, x3, y3, WHITE)
     * <- draw_line(x3, y3, x1, y1, WHITE)
     return wrap(0)
-
-################################################################################
-# API
-################################################################################
 
 # HACK: Workaround for a bug in the import system!
 

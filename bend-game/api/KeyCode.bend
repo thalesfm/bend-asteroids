@@ -1,5 +1,5 @@
-KeyCode/SPACE = 32
-KeyCode/LEFT  = 65361
-KeyCode/UP    = 65362
-KeyCode/RIGHT = 65363
-KeyCode/DOWN  = 65364
+SPACE = 32
+LEFT  = 65361
+UP    = 65362
+RIGHT = 65363
+DOWN  = 65364

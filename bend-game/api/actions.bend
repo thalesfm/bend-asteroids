@@ -1,4 +1,6 @@
-from ./api import *
+import ./Command
+import ./CommandBuffer
+import ./CommandWriter
 
 def push_command(cmd):
   return CommandWriter/tell(CommandBuffer/push(CommandBuffer/new, cmd))
