@@ -1,6 +1,7 @@
 use std::path::Path;
 
-use bend::{diagnostics, load_file_to_book, run_book, CompileOpts, RunOpts};
+// use bend::run_book;
+use bend::{diagnostics, load_file_to_book, CompileOpts, RunOpts};
 use bend::diagnostics::{Diagnostics, DiagnosticsConfig, Severity};
 use bend::fun::{Book, Name, Num, Pattern, Term};
 use bend::imports::DefaultLoader;
@@ -74,4 +75,79 @@ impl App {
         let (term, _, _) = result.ok_or("Run failed".to_owned())?;
         Ok(term)
     }
+}
+
+use bend::{AdtEncoding, CompileResult, compile_book};
+use bend::fun::net_to_term::net_to_term;
+use bend::fun::term_to_net::{Labels, term_to_hvm};
+use bend::net::hvm_to_net::hvm_to_net;
+
+pub fn run_book(
+    mut book: Book,
+    run_opts: RunOpts,
+    compile_opts: CompileOpts,
+    diagnostics_cfg: DiagnosticsConfig,
+    args: Option<Vec<Term>>,
+    cmd: &str,
+) -> Result<Option<(Term, String, Diagnostics)>, Diagnostics> {
+    println!("\nFrame:");
+    let start = std::time::Instant::now();
+    let CompileResult { hvm_book: core_book, labels, diagnostics: _ } =
+        compile_book(&mut book, compile_opts.clone(), diagnostics_cfg, args)?;
+    println!("- Compile:  {:.2} ms", 1000.0*start.elapsed().as_secs_f32());
+
+    let start = std::time::Instant::now();
+    let (net, stats) = run_hvm(&core_book, cmd, &run_opts).ok_or("Fuck".to_owned())?;
+    println!("- Run:      {:.2} ms", 1000.0*start.elapsed().as_secs_f32());
+
+    let start = std::time::Instant::now();
+    let (term, diags) =
+        readback_hvm_net(&net, &book, &labels, run_opts.linear_readback, compile_opts.adt_encoding);
+    println!("- Readback: {:.2} ms", 1000.0*start.elapsed().as_secs_f32());
+
+    Ok(Some((term, stats, diags)))
+}
+
+pub fn readback_hvm_net(
+    net: &::hvm::ast::Net,
+    book: &Book,
+    labels: &Labels,
+    linear: bool,
+    adt_encoding: AdtEncoding,
+) -> (Term, Diagnostics) {
+    let mut diags = Diagnostics::default();
+    let net = hvm_to_net(net);
+    let mut term = net_to_term(&net, book, labels, linear, &mut diags);
+    #[allow(clippy::mutable_key_type)] // Safe to allow, we know how `Name` works.
+    let recursive_defs = book.recursive_defs();
+    term.expand_generated(book, &recursive_defs);
+    term.resugar_strings(adt_encoding);
+    term.resugar_lists(adt_encoding);
+    (term, diags)
+}
+
+fn run_hvm(book: &::hvm::ast::Book, cmd: &str, run_opts: &RunOpts) -> Option<(ast::Net, String)> {
+    let book = book.build();
+    let net = run(&book)?;
+    Some((net, "".to_owned()))
+}
+
+use ::hvm::{ast, hvm};
+
+pub fn run(book: &hvm::Book) -> Option<ast::Net> {
+    // Initializes the global net
+    let net = hvm::GNet::new(1 << 29, 1 << 29);
+  
+    // Initializes threads
+    let mut tm = hvm::TMem::new(0, 1);
+  
+    // Creates an initial redex that calls main
+    let main_id = book.defs.iter().position(|def| def.name == "main").unwrap();
+    tm.rbag.push_redex(hvm::Pair::new(hvm::Port::new(hvm::REF, main_id as u32), hvm::ROOT));
+    net.vars_create(hvm::ROOT.get_val() as usize, hvm::NONE);
+  
+    // Evaluates
+    tm.evaluator(&net, &book);
+    
+    ast::Net::readback(&net, book)
 }

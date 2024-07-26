@@ -2,8 +2,6 @@ mod api;
 mod app;
 mod from_term;
 
-use std::marker::PhantomData;
-
 use macroquad::prelude::*;
 use macroquad::input::utils::{register_input_subscriber, repeat_all_miniquad_input};
 use macroquad::miniquad::{EventHandler, KeyMods};
@@ -66,7 +64,14 @@ async fn main() {
                 Command::DrawText { text, x, y, font_size, color } => {
                     draw_text(text.as_str(), x, y, font_size, color);
                 }
+                // Command::Exit => {
+                //     return;
+                // }
             }
+        }
+
+        if is_key_pressed(KeyCode::Escape) {
+            return;
         }
 
         // Forward all key events since last frame to app

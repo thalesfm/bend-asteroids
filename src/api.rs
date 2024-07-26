@@ -7,6 +7,7 @@ pub enum Command {
     Clear { color: Color },
     DrawLine { x1: f32, y1: f32, x2: f32, y2: f32, thickness: f32, color: Color },
     DrawText { text: String, x: f32, y: f32, font_size: f32, color: Color },
+    // Exit,
 }
 
 // FIME: Doesn't work unless the constructor is fully expanded!
@@ -60,6 +61,8 @@ impl FromTerm for Command {
             let font_size = FromTerm::from_term(args.get(4)?)?;
             let color = FromTerm::from_term(args.get(5)?)?;
             Some(Command::DrawText { text, x, y, font_size, color })
+        // } else if tag == "api/Command/Command/Exit/tag" {
+        //     Some(Command::Exit)
         } else {
             None
         }
