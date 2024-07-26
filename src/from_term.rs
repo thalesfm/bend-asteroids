@@ -1,5 +1,4 @@
 use bend::fun::{Num, Pattern, Term};
-use macroquad::color::*;
 
 pub trait FromTerm: Sized {
     fn from_term(term: &Term) -> Option<Self>;
@@ -34,6 +33,15 @@ impl FromTerm for f32 {
     fn from_term(term: &Term) -> Option<Self> {
         match *term {
             Term::Num { val: Num::F24(val) } => Some(val),
+            _ => None,
+        }
+    }
+}
+
+impl FromTerm for String {
+    fn from_term(term: &Term) -> Option<Self> {
+        match term {
+            Term::Str { val } => Some(val.to_string()),
             _ => None,
         }
     }

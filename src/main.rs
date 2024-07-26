@@ -57,14 +57,22 @@ async fn main() {
         let commands = app.draw(&state).unwrap_or(vec![]);
         for command in commands {
             match command {
-                Command::Clear { color } => clear_background(color),
-                Command::DrawLine { x1, y1, x2, y2, color } => draw_line(x1, y1, x2, y2, 1.0, color),
+                Command::Clear { color } => {
+                    clear_background(color);
+                }
+                Command::DrawLine { x1, y1, x2, y2, thickness, color } => {
+                    draw_line(x1, y1, x2, y2, thickness, color);
+                }
+                Command::DrawText { text, x, y, font_size, color } => {
+                    draw_text(text.as_str(), x, y, font_size, color);
+                }
             }
         }
 
         // Forward all key events since last frame to app
         let mut forwarder = KeyEventForwarder::new(&app, &mut state);
         repeat_all_miniquad_input(&mut forwarder, subscriber);
+        // drop(forwarder); // Implicit?
 
         // Update the app's state
         state = app.tick(&state).unwrap();

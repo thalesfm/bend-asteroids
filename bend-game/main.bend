@@ -8,7 +8,7 @@ SHIP_HEIGHT = 25.0
 
 object Ship { px, py, dx, dy, angle }
 
-object State { player }
+object State { player, pressed }
 
 def init(): # State
   player = Ship {
@@ -18,7 +18,7 @@ def init(): # State
     dy: 0.0,
     angle: 0.0,
   }
-  return State(player)
+  return State(player, 0)
 
 def tick(state): # State -> State
   open State: state
@@ -31,14 +31,18 @@ def tick(state): # State -> State
     dy: 0.0,
     angle: player.angle + 0.1,
   }
-  return State(player)
+  return State(player, state.pressed)
 
 def do_draw(state): # State -> (CommandWriter *)
   open State: state
   with CommandWriter:
     * <- clear(BLACK)
     * <- draw_ship(state.player)
-    return wrap(0)
+    if state.pressed != 0:
+      cw = draw_text("Key pressed", 300.0, 300.0, WHITE)
+    else:
+      cw = wrap(0)
+  return cw
 
 def draw(state):
   cw = do_draw(state)
@@ -47,16 +51,7 @@ def draw(state):
 
 def when(key, state):
   open State: state
-  player = state.player
-  open Ship: player
-  player = Ship {
-    px: to_f24(key),
-    py: player.py,
-    dx: 0.0,
-    dy: 0.0,
-    angle: player.angle,
-  }
-  return State(player)
+  return State(state.player, key)
 
 def main(): # App
   return App(init, tick, draw, when)
@@ -91,42 +86,31 @@ object App { init, tick, draw, when }
 object Color { r, g, b, a }
 
 type Command:
-  Clear { col }
-  DrawLine { x1, y1, x2, y2, col }
+  Clear { color }
+  DrawLine { x1, y1, x2, y2, thickness, color }
+  DrawText { text, x, y, font_size, color }
 
 object CommandWriter { val, buf }
 
+# Color constants
 WHITE = (Color 1.0 1.0 1.0 1.0)
 BLACK = (Color 0.0 0.0 0.0 1.0)
 
-def Color/copy(col):
-  open Color: col
-  r = col.r + 0.0
-  g = col.g + 0.0
-  b = col.b + 0.0
-  a = col.a + 0.0
-  return Color(r, g, b, a)
-
-def Command/copy(cmd):
-  match cmd:
-    case Command/Clear:
-      return Command/Clear(Color/copy(cmd.col))
-    case Command/DrawLine:
-      x1 = cmd.x1 + 0.0
-      y1 = cmd.y1 + 0.0
-      x2 = cmd.x2 + 0.0
-      y2 = cmd.y2 + 0.0
-      col = Color/copy(cmd.col)
-      return Command/DrawLine(x1, y1, x2, y2, col)
+# Keycode constants
+SPACE = 32
+LEFT  = 65361
+UP    = 65362
+RIGHT = 65363
+DOWN  = 65364
 
 CommandBuffer/new = DiffList/new
 
 CommandBuffer/push = DiffList/append
 
-def CommandBuffer/flush(buf):
-  return List/map(Command/copy, DiffList/to_list(buf))
-
 CommandBuffer/concat = DiffList/concat
+
+def CommandBuffer/flush(buf):
+  return List/map(Command/clone, DiffList/to_list(buf))
 
 def CommandWriter/wrap(val):
   return CommandWriter(val, CommandBuffer/new)
@@ -142,15 +126,37 @@ def CommandWriter/bind(cw1, nxt):
   buf = CommandBuffer/concat(cw1.buf, cw2.buf)
   return CommandWriter(cw2.val, buf)
 
-def clear(col):
-  buf = CommandBuffer/new
-  buf = CommandBuffer/push(buf, Command/Clear(col))
-  return CommandWriter(0, buf)
+def push_command(cmd):
+  return CommandWriter/tell(CommandBuffer/push(CommandBuffer/new, cmd))
 
-def draw_line(x1, y1, x2, y2, col):
-  buf = CommandBuffer/new
-  buf = CommandBuffer/push(buf, Command/DrawLine(x1, y1, x2, y2, col))
-  return CommandWriter(0, buf)
+def clear(color):
+  return push_command(Command/Clear(color))
+
+def draw_line(x1, y1, x2, y2, color):
+  return push_command(Command/DrawLine(x1, y1, x2, y2, 1.0, color))
+
+def draw_text(text, x, y, color):
+  return push_command(Command/DrawText(text, x, y, 20.0, color))
+
+def Color/clone(color):
+  open Color: color
+  r = color.r + 0.0
+  g = color.g + 0.0
+  b = color.b + 0.0
+  a = color.a + 0.0
+  return Color(r, g, b, a)
+
+def Command/clone(cmd):
+  match cmd:
+    case Command/Clear:
+      color = Color/clone(cmd.color)
+      return Command/Clear(color)
+    case Command/DrawLine:
+      color = Color/clone(cmd.color)
+      return Command/DrawLine(cmd.x1, cmd.y1, cmd.x2, cmd.y2, cmd.thickness, color)
+    case Command/DrawText:
+      color = Color/clone(cmd.color)
+      return Command/DrawText(cmd.text, cmd.x, cmd.y, cmd.font_size, color)
 
 ################################################################################
 # Misc
