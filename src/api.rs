@@ -21,7 +21,7 @@ impl FromTerm for Color {
         let Term::Ref { nam: tag } = args.get(0)? else {
             return None;
         };
-        if tag != "Color/tag" {
+        if tag != "api/Color/Color/tag" {
             return None;
         }
         let r = FromTerm::from_term(args.get(1)?)?;
@@ -42,10 +42,10 @@ impl FromTerm for Command {
             return None;
         };
         // Can't use `match` here because 'tag.0' is private
-        if tag == "Command/Clear/tag" {
+        if tag == "api/Command/Command/Clear/tag" {
             let color = FromTerm::from_term(args.get(1)?)?;
             Some(Command::Clear { color })
-        } else if tag == "Command/DrawLine/tag" {
+        } else if tag == "api/Command/Command/DrawLine/tag" {
             let x1 = FromTerm::from_term(args.get(1)?)?;
             let y1 = FromTerm::from_term(args.get(2)?)?;
             let x2 = FromTerm::from_term(args.get(3)?)?;
@@ -53,7 +53,7 @@ impl FromTerm for Command {
             let thickness = FromTerm::from_term(args.get(5)?)?;
             let color = FromTerm::from_term(args.get(6)?)?;
             Some(Command::DrawLine { x1, y1, x2, y2, thickness, color })
-        } else if tag == "Command/DrawText/tag" {
+        } else if tag == "api/Command/Command/DrawText/tag" {
             let text = FromTerm::from_term(args.get(1)?)?;
             let x = FromTerm::from_term(args.get(2)?)?;
             let y = FromTerm::from_term(args.get(3)?)?;
