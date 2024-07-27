@@ -53,6 +53,9 @@ def when(key, state):
 def main():
   return App(init, tick, draw, when)
 
+def main_(f):
+  return f(10.0)
+
 def Player/init():
   return Player {
     px: to_f24(SCREEN_WIDTH)  / 2.0,

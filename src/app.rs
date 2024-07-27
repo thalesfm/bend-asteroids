@@ -1,9 +1,11 @@
+use std::collections::BTreeMap;
 use std::path::Path;
+use std::process::ExitCode;
 
 // use bend::run_book;
 use bend::{diagnostics, load_file_to_book, CompileOpts, RunOpts};
 use bend::diagnostics::{Diagnostics, DiagnosticsConfig, Severity};
-use bend::fun::{Book, Name, Num, Pattern, Term};
+use bend::fun::{Book, Name, Num, Pattern, Tag, Term};
 use bend::imports::DefaultLoader;
 use macroquad::prelude::*;
 
@@ -14,7 +16,9 @@ use crate::from_term::FromTerm;
 pub type State = Term;
 
 pub struct App {
-    book: Book,
+    bend_book: Book,
+    core_book: hvm::Book,
+    labels: Labels,
 }
 
 impl App {
@@ -22,13 +26,21 @@ impl App {
         let path = Path::new(path);
         let package_loader = DefaultLoader::new(path);
         let diagnostics_cfg = DiagnosticsConfig::new(Severity::Allow, false);
-        let mut book = load_file_to_book(path, package_loader, diagnostics_cfg)?;
+        let mut bend_book = load_file_to_book(path, package_loader, diagnostics_cfg)?;
         // book.entrypoint = entrypoint.map(Name::new);
-        book.entrypoint = None;
-        Ok(App { book })
+        bend_book.entrypoint = None;
+
+        let compile_opts = CompileOpts::default();
+        let diagnostics_cfg = DiagnosticsConfig::new(Severity::Allow, false);
+        let CompileResult { hvm_book: core_book, labels, diagnostics: _ } =
+            compile_book(&mut bend_book, compile_opts.clone(), diagnostics_cfg, None)?;
+        let core_book: hvm::Book = core_book.build();
+
+        Ok(App { bend_book, core_book, labels })
     }
 
     pub fn init(&self) -> Result<State, Diagnostics> {
+        // println!("App::init called");
         let arg = Term::rfold_lams(
             Term::Var { nam: Name::new("init") },
             [None, Some(Name::new("init")), None, None, None].into_iter());
@@ -36,6 +48,7 @@ impl App {
     }
 
     pub fn tick(&self, state: &State) -> Result<State, Diagnostics> {
+        // println!("App::tick called");
         let arg = Term::rfold_lams(
             Term::app(Term::Var { nam: Name::new("tick") }, state.clone()),
             [None, None, Some(Name::new("tick")), None, None].into_iter());
@@ -43,6 +56,7 @@ impl App {
     }
 
     pub fn draw(&self, state: &State) -> Result<Vec<Command>, Diagnostics> {
+        // println!("App::draw called");
         let arg = Term::rfold_lams(
             Term::app(Term::Var { nam: Name::new("draw") }, state.clone()),
             [None, None, None, Some(Name::new("draw")), None].into_iter());
@@ -56,7 +70,7 @@ impl App {
     }
 
     pub fn when(&self, key: KeyCode, state: &State) -> Result<State, Diagnostics> {
-        // Term::call( ... );
+        // println!("App::when called");
         let arg = Term::rfold_lams(
             Term::app(
                 Term::app(
@@ -69,10 +83,18 @@ impl App {
 
     fn run(&self, args: Vec<Term>) -> Result<Term, Diagnostics> {
         let compile_opts = CompileOpts::default();
-        let diagnostics_cfg = DiagnosticsConfig::new(Severity::Allow, false);
+        // let diagnostics_cfg = DiagnosticsConfig::new(Severity::Allow, false);
         let run_opts = RunOpts::default();
-        let result = run_book(self.book.clone(), run_opts, compile_opts, diagnostics_cfg, Some(args), "run-c")?;
-        let (term, _, _) = result.ok_or("Run failed".to_owned())?;
+
+        let mut labels = self.labels.clone();
+        let args: Vec<ast::Net> = args.iter()
+            .map(|term| term_to_hvm(&term, &mut labels))
+            .collect::<Result<_, _>>()?;
+        let net = run(&self.core_book, args).ok_or("Fuck".to_owned())?;
+
+        let (term, _diags) =
+            readback_hvm_net(&net, &self.bend_book, &labels, run_opts.linear_readback, compile_opts.adt_encoding);
+
         Ok(term)
     }
 }
@@ -81,32 +103,6 @@ use bend::{AdtEncoding, CompileResult, compile_book};
 use bend::fun::net_to_term::net_to_term;
 use bend::fun::term_to_net::{Labels, term_to_hvm};
 use bend::net::hvm_to_net::hvm_to_net;
-
-pub fn run_book(
-    mut book: Book,
-    run_opts: RunOpts,
-    compile_opts: CompileOpts,
-    diagnostics_cfg: DiagnosticsConfig,
-    args: Option<Vec<Term>>,
-    cmd: &str,
-) -> Result<Option<(Term, String, Diagnostics)>, Diagnostics> {
-    println!("\nFrame:");
-    let start = std::time::Instant::now();
-    let CompileResult { hvm_book: core_book, labels, diagnostics: _ } =
-        compile_book(&mut book, compile_opts.clone(), diagnostics_cfg, args)?;
-    println!("- Compile:  {:.2} ms", 1000.0*start.elapsed().as_secs_f32());
-
-    let start = std::time::Instant::now();
-    let (net, stats) = run_hvm(&core_book, cmd, &run_opts).ok_or("Fuck".to_owned())?;
-    println!("- Run:      {:.2} ms", 1000.0*start.elapsed().as_secs_f32());
-
-    let start = std::time::Instant::now();
-    let (term, diags) =
-        readback_hvm_net(&net, &book, &labels, run_opts.linear_readback, compile_opts.adt_encoding);
-    println!("- Readback: {:.2} ms", 1000.0*start.elapsed().as_secs_f32());
-
-    Ok(Some((term, stats, diags)))
-}
 
 pub fn readback_hvm_net(
     net: &::hvm::ast::Net,
@@ -126,26 +122,73 @@ pub fn readback_hvm_net(
     (term, diags)
 }
 
-fn run_hvm(book: &::hvm::ast::Book, cmd: &str, run_opts: &RunOpts) -> Option<(ast::Net, String)> {
-    let book = book.build();
-    let net = run(&book)?;
-    Some((net, "".to_owned()))
-}
-
 use ::hvm::{ast, hvm};
 
-pub fn run(book: &hvm::Book) -> Option<ast::Net> {
-    // Initializes the global net
+pub fn run(book: &hvm::Book, args: Vec<ast::Net>) -> Option<ast::Net> {
     let net = hvm::GNet::new(1 << 29, 1 << 29);
-  
-    // Initializes threads
     let mut tm = hvm::TMem::new(0, 1);
-  
-    // Creates an initial redex that calls main
+
+    let mut fids = BTreeMap::<String, hvm::Val>::new();
+    fids.insert("main".to_string(), 0);
+    for (fid, def) in book.defs.iter().enumerate() {
+        if def.name != "main" {
+            fids.insert(def.name.clone(), fid as hvm::Val);
+        }
+    }
+
     let main_id = book.defs.iter().position(|def| def.name == "main").unwrap();
-    tm.rbag.push_redex(hvm::Pair::new(hvm::Port::new(hvm::REF, main_id as u32), hvm::ROOT));
+    let main = hvm::Port::new(hvm::REF, main_id as u32);
+
+    // root <- fresh()
+    // tupl <- root
+    assert!(tm.get_resources(&net, 0, 0, 1));
+    net.vars_create(tm.vloc[0], hvm::NONE);
+    let root = hvm::Port::new(hvm::VAR, tm.vloc[0] as u32);
+    let mut tupl = root;
+
+    for arg in args.iter().rev() {
+        // Build & create arg
+        let mut def = hvm::Def {
+            name: "".to_string(),
+            safe: true,
+            root: hvm::Port(0),
+            rbag: vec![],
+            node: vec![],
+            vars: 0,
+        };
+
+        arg.build(&mut def, &fids, &mut BTreeMap::new());
+        
+        assert!(tm.get_resources(&net, def.rbag.len(), def.node.len(), def.vars as usize));
+
+        for i in 0..def.vars {
+            net.vars_create(tm.vloc[i], hvm::NONE);
+        }
+        for i in 0..def.node.len() {
+            net.node_create(tm.nloc[i], def.node[i].adjust_pair(&tm));
+        }
+
+        // TODO: Check if `rbag` is ever not empty. Otherwise, this is unnecessary
+        for pair in &def.rbag {
+            tm.link_pair(&net, pair.adjust_pair(&tm));
+        }
+
+        // tm.link_pair(net, Pair::new(def.root.adjust_port(tm), b));        
+        let root = def.root.adjust_port(&tm);
+
+        // port <- hvm: (arg port)
+        assert!(tm.get_resources(&net, 0, 1, 0));
+        net.node_create(tm.nloc[0], hvm::Pair::new(root, tupl));
+        tupl = hvm::Port::new(hvm::CON, tm.nloc[0] as u32);
+    }
+
+    // @main ~ tupl (link)
+    // root ~ ROOT  (push_redex)
+    assert!(tm.get_resources(&net, 2, 0, 0));
     net.vars_create(hvm::ROOT.get_val() as usize, hvm::NONE);
-  
+    tm.rbag.push_redex(hvm::Pair::new(root, hvm::ROOT));
+    tm.link_pair(&net, hvm::Pair::new(main, tupl));
+
     // Evaluates
     tm.evaluator(&net, &book);
     
