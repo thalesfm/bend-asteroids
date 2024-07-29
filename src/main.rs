@@ -1,6 +1,7 @@
 mod api;
 mod app;
 mod from_term;
+mod hvm;
 
 use macroquad::prelude::*;
 use macroquad::input::utils::{register_input_subscriber, repeat_all_miniquad_input};
@@ -9,18 +10,18 @@ use macroquad::miniquad::{EventHandler, KeyMods};
 use api::Command;
 use app::{App, State};
 
-struct KeyEventForwarder<'a> {
-    app: &'a App,
+struct KeyEventForwarder<'a, 'b> {
+    app: &'a mut App<'b>,
     state: &'a mut State,
 }
 
-impl<'a> KeyEventForwarder<'a> {
-    fn new(app: &'a App, state: &'a mut State) -> Self {
+impl<'a, 'b> KeyEventForwarder<'a, 'b> {
+    fn new(app: &'a mut App<'b>, state: &'a mut State) -> Self {
         KeyEventForwarder { app: app, state: state }
     }
 }
 
-impl<'a> EventHandler for KeyEventForwarder<'a> {
+impl<'a, 'b> EventHandler for KeyEventForwarder<'a, 'b> {
     fn update(&mut self) {
         // Do nothing
     }
@@ -46,7 +47,7 @@ fn window_conf() -> Conf {
 
 #[macroquad::main(window_conf)]
 async fn main() {
-    let app = App::load_from_file("bend-game/main.bend").unwrap();
+    let mut app = App::load_from_file("bend-game/main.bend").unwrap();
     let mut state = app.init().unwrap();
     let subscriber = register_input_subscriber();
 
@@ -75,7 +76,7 @@ async fn main() {
         }
 
         // Forward all key events since last frame to app
-        let mut forwarder = KeyEventForwarder::new(&app, &mut state);
+        let mut forwarder = KeyEventForwarder::new(&mut app, &mut state);
         repeat_all_miniquad_input(&mut forwarder, subscriber);
         // drop(forwarder); // Implicit?
 
