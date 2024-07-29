@@ -1,6 +1,6 @@
 use bend::fun::{Name, Num, Pattern, Term};
-use macroquad::color::*;
-use crate::from_term::FromTerm;
+use macroquad::prelude::*;
+use crate::convert::{FromTerm, IntoTerm};
 
 #[derive(Debug)]
 pub enum Command {
@@ -8,6 +8,12 @@ pub enum Command {
     DrawLine { x1: f32, y1: f32, x2: f32, y2: f32, thickness: f32, color: Color },
     DrawText { text: String, x: f32, y: f32, font_size: f32, color: Color },
     // Exit,
+}
+
+#[derive(Debug)]
+pub enum Event {
+    KeyDown(KeyCode),
+    KeyUp(KeyCode),
 }
 
 // FIME: Doesn't work unless the constructor is fully expanded!
@@ -66,6 +72,28 @@ impl FromTerm for Command {
         } else {
             None
         }
+    }
+}
+
+impl IntoTerm for KeyCode {
+    fn into_term(value: Self) -> Term {
+        IntoTerm::into_term(value as u32)
+    }
+}
+
+impl IntoTerm for Event {
+    fn into_term(value: Self) -> Term {
+        let (tag, keycode) = match value {
+            Event::KeyDown(keycode) => ("api/Event/Event/KeyDown/tag", keycode),
+            Event::KeyUp(keycode) => ("api/Event/Event/KeyUp/tag", keycode),
+        };
+        Term::lam(
+            Pattern::Var(Some(Name::new("x"))),
+            Term::call(Term::Var { nam: Name::new("x") }, [
+                Term::Ref { nam: Name::new(tag) },
+                IntoTerm::into_term(keycode),
+            ]),
+        )
     }
 }
 

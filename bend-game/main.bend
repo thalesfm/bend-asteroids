@@ -41,7 +41,8 @@ def tick(state):
   else:
     player = Player/tick(state.player, state.input)
 
-  return State(paused, player, InputBuffer/new)
+  # return State(paused, player, InputBuffer/new)
+  return State(paused, player, state.input)
 
 def draw(state):
   open State: state
@@ -54,9 +55,13 @@ def draw(state):
   open CommandWriter: cw
   return CommandBuffer/flush(cw.buf)
 
-def when(key, state):
+def when(event, state):
   open State: state
-  input = InputBuffer/register_key(state.input, key)
+  match event:
+    case Event/KeyDown:
+      input = InputBuffer/register_key_down(state.input, event.keycode)
+    case Event/KeyUp:
+      input = InputBuffer/register_key_up(state.input, event.keycode)
   return State(state.paused, state.player, input)
 
 def main():

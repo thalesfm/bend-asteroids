@@ -1,13 +1,13 @@
 mod api;
 mod app;
-mod from_term;
+mod convert;
 mod hvm;
 
 use macroquad::prelude::*;
 use macroquad::input::utils::{register_input_subscriber, repeat_all_miniquad_input};
 use macroquad::miniquad::{EventHandler, KeyMods};
 
-use api::Command;
+use api::{Command, Event};
 use app::{App, State};
 
 struct KeyEventForwarder<'a, 'b> {
@@ -30,8 +30,16 @@ impl<'a, 'b> EventHandler for KeyEventForwarder<'a, 'b> {
         // Do nothing
     }
 
-    fn key_down_event(&mut self, keycode: KeyCode, _keymods: KeyMods, _repeat: bool) {
-        *self.state = self.app.when(keycode, self.state).unwrap();
+    fn key_down_event(&mut self, keycode: KeyCode, _keymods: KeyMods, repeat: bool) {
+        if !repeat {
+            let event = Event::KeyDown(keycode);
+            *self.state = self.app.when(event, self.state).unwrap();
+        }
+    }
+
+    fn key_up_event(&mut self, keycode: KeyCode, _keymods: KeyMods) {
+        let event = Event::KeyUp(keycode);
+        *self.state = self.app.when(event, self.state).unwrap();
     }
 }
 
@@ -81,6 +89,7 @@ async fn main() {
         // drop(forwarder); // Implicit?
 
         // Update the app's state
+        println!("state: {}", state);
         state = app.tick(&state).unwrap();
 
         let elapsed = 1000.0 * get_frame_time();

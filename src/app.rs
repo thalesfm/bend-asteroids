@@ -13,8 +13,8 @@ use bend::imports::DefaultLoader;
 use macroquad::prelude::*;
 use ::hvm::{ast, hvm};
 
-use crate::api::Command;
-use crate::from_term::FromTerm;
+use crate::api::{Command, Event};
+use crate::convert::{FromTerm, IntoTerm};
 use crate::hvm::HvmState;
 
 pub type State = Term;
@@ -72,13 +72,13 @@ impl<'a> App<'a> {
         Ok(cmds)
     }
 
-    pub fn when(&mut self, key: KeyCode, state: &State) -> Result<State, Diagnostics> {
+    pub fn when(&mut self, event: Event, state: &State) -> Result<State, Diagnostics> {
         let pats = [None, None, None, None, Some(Name::new("when"))];
         let term = Term::rfold_lams(
             Term::app(
                 Term::app(
                     Term::Var { nam: Name::new("when") },
-                    Term::Num { val: Num::U24(key as u32) }),
+                    IntoTerm::into_term(event)),
                 state.clone()),
             pats.into_iter());
         self.main(vec![term])
