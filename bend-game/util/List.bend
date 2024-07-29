@@ -9,4 +9,4 @@ elem _ (List/Nil) = 0
 elem x (List/Cons y ys) = (| (== x y) (elem x ys))
 
 delete _ (List/Nil) = (List/Nil)
-delete x (List/Cons y ys) = if (== x y) { ys } else { (delete x ys) }
+delete x (List/Cons y ys) = if (== x y) { ys } else { (List/Cons y (delete x ys)) }

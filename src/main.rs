@@ -89,7 +89,6 @@ async fn main() {
         // drop(forwarder); // Implicit?
 
         // Update the app's state
-        println!("state: {}", state);
         state = app.tick(&state).unwrap();
 
         let elapsed = 1000.0 * get_frame_time();
