@@ -1,7 +1,5 @@
 import ./util/List
 
-# TODO: Key press, down, and up
-
 def new():
   return List/Nil
 
