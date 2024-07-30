@@ -103,11 +103,11 @@ impl<'a> HvmState<'a> {
             self.gnet.node_create(self.tmem.nloc[i], def.node[i].adjust_pair(&self.tmem));
         }
         // Assuming net was constructed using `Net::readback` (as in `pop_net`)
-        // it shouldn't have redexes
-        assert!(def.rbag.len() == 0);
-        // for pair in &def.rbag {
-        //     self.tmem.link_pair(&self.gnet, pair.adjust_pair(&self.tmem));
-        // }
+        // it shouldn't have redexes, but it sometimes does?
+        // assert!(def.rbag.len() == 0);
+        for pair in &def.rbag {
+            self.tmem.link_pair(&self.gnet, pair.adjust_pair(&self.tmem));
+        }
         def.root.adjust_port(&self.tmem)
     }
 }
