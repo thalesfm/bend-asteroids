@@ -3,9 +3,9 @@ use std::path::Path;
 
 // use bend::run_book;
 use bend::{AdtEncoding, CompileResult, compile_book};
-use bend::{diagnostics, load_file_to_book, readback_hvm_net, CompileOpts, RunOpts};
+use bend::{desugar_book, diagnostics, load_file_to_book, readback_hvm_net, CompileOpts, RunOpts};
 use bend::diagnostics::{Diagnostics, DiagnosticsConfig, Severity};
-use bend::fun::{Book, Name, Num, Pattern, Tag, Term};
+use bend::fun::{Book, Definition, Name, Num, Pattern, Tag, Term};
 use bend::fun::net_to_term::net_to_term;
 use bend::fun::term_to_net::{Labels, term_to_hvm};
 use bend::net::hvm_to_net::hvm_to_net;
@@ -89,7 +89,9 @@ impl<'a> App<'a> {
 
         // Convert/push args
         let args = args.iter().map(|term| -> Result<_, Diagnostics> {
-            let net = term_to_hvm(term, &mut labels)?;
+            // Sometimes causes lib to panic; should desugar if possible
+            let term = self.desugar_term(term)?;
+            let net = term_to_hvm(&term, &mut labels)?;
             Ok(self.hvm.push_net(&net))
         });
         let args = args.collect::<Result<_, _>>()?;
@@ -104,5 +106,29 @@ impl<'a> App<'a> {
         let linear_readback = RunOpts::default().linear_readback;
         let (result, _) = readback_hvm_net(&result, &self.book, &labels, linear_readback, adt_encoding);
         Ok(result)
+    }
+
+    // HACK: Fix for panic caused when calling `term_to_hvm`
+    // with terms containing lists etc. without desugaring them first
+    fn desugar_term(&mut self, term: &Term) -> Result<Term, Diagnostics> {
+        let name = Name::new("__temp");
+        let rule = bend::fun::Rule {
+            pats: vec![],
+            body: term.clone(),
+        };
+        let temp = Definition {
+            name: name.clone(),
+            rules: vec![rule],
+            source: bend::fun::Source::Generated,
+        };
+
+        self.book.defs.insert(name.clone(), temp);
+        // let compile_opts = CompileOpts::default();
+        // let diagnostics_cfg = DiagnosticsConfig::new(Severity::Allow, false);
+        // let _ = desugar_book(&mut self.book, compile_opts, diagnostics_cfg, None)?;
+        self.book.encode_builtins();
+        
+        let temp = self.book.defs.remove(&name).unwrap();
+        Ok(temp.rule().body.clone())
     }
 }

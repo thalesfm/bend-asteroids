@@ -94,6 +94,8 @@ async fn main() {
 
         // Update the app's state
         state = app.tick(&state).unwrap();
+        // println!("state: {}", state);
+        // println!("state: {:?}", state);
 
         let elapsed = 1000.0 * get_frame_time();
         draw_text(format!("{:2.2} ms", elapsed).as_str(), 20.0, 32.0, 24.0, WHITE);

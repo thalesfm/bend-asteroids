@@ -4,6 +4,7 @@ from ./api/Color import *
 from ./config import *
 from ./util import *
 from ./util/Bool import (TRUE, FALSE)
+import ./Asteroid
 import ./CommandBuffer
 import ./CommandWriter
 import ./InputBuffer
@@ -11,13 +12,14 @@ import ./Player
 import ./Random
 import ./Star
 
-object State { paused, player, input }
+object State { paused, player, asteroids, input }
 
 def init():
   px = to_f24(SCREEN_WIDTH)  / 2.0
   py = to_f24(SCREEN_HEIGHT) / 2.0
   player = Player/new(px, py)
-  return State(TRUE, player, InputBuffer/new)
+  asteroids = [0] # List/Cons(Asteroid/new(30.0, 30.0), List/Nil)
+  return State(TRUE, player, asteroids, InputBuffer/new)
 
 def tick(state):
   open State: state
@@ -32,7 +34,7 @@ def tick(state):
   else:
     player = Player/tick(state.player, state.input)
 
-  return State(paused, player, state.input)
+  return State(paused, player, state.asteroids, state.input)
 
 def draw(state):
   open State: state
@@ -65,7 +67,7 @@ def when(event, state):
       input = InputBuffer/register_key_down(state.input, event.keycode)
     case Event/KeyUp:
       input = InputBuffer/register_key_up(state.input, event.keycode)
-  return State(state.paused, state.player, input)
+  return State(state.paused, state.player, state.asteroids, input)
 
 def main():
   return App(init, tick, draw, when)
