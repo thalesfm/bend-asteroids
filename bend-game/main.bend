@@ -44,15 +44,15 @@ def tick(state):
   else:
     player = Player/tick(state.player, state.input)
 
-  # return State(paused, player, InputBuffer/new)
   return State(paused, player, state.input)
 
 def draw(state):
   open State: state
   with CommandWriter:
     * <- clear(BLACK)
+    * <- draw_stars(Random/seed(5678))
     if state.paused:
-      * <- draw_stars(Random/seed(45))
+      # * <- draw_stars(Random/seed(45))
       cw = draw_text("Press SPACE to start", 240.0, 300.0, WHITE)
     else:
       cw = Player/draw(state.player)
@@ -64,15 +64,15 @@ def draw_stars(rgen):
     when i < 20:
       x, rgen = Random/unif(0, SCREEN_WIDTH, rgen)
       y, rgen = Random/unif(0, SCREEN_HEIGHT, rgen)
+      x = to_f24(x)
+      y = to_f24(y)
       r, rgen = Random/unit(rgen)
       g, rgen = Random/unit(rgen)
       b, rgen = Random/unit(rgen)
       cw = fork(i + 1, rgen)
-      x = to_f24(x)
-      y = to_f24(y)
       with CommandWriter:
         * <- cw
-        * <- draw_line(x, y, x + 3.0, y + 3.0, Color(r, g, b, 1.0))
+        * <- draw_circle(x, y, 2.0, Color(r, g, b, 1.0))
         return CommandWriter/wrap(*)
     else:
       return CommandWriter/wrap(*)

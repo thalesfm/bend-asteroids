@@ -70,6 +70,10 @@ async fn main() {
                 Command::DrawLine { x1, y1, x2, y2, thickness, color } => {
                     draw_line(x1, y1, x2, y2, thickness, color);
                 }
+                Command::DrawCircle { x, y, r, thickness, color } => {
+                    // draw_circle_lines(x, y, r, thickness, color);
+                    draw_poly_lines(x, y, 4, r, 0.0, thickness, color);
+                }
                 Command::DrawText { text, x, y, font_size, color } => {
                     draw_text(text.as_str(), x, y, font_size, color);
                 }

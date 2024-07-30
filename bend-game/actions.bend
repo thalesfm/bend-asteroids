@@ -11,5 +11,8 @@ def clear(color):
 def draw_line(x1, y1, x2, y2, color):
   return push_command(Command/DrawLine(x1, y1, x2, y2, 1.0, color))
 
+def draw_circle(x, y, r, color):
+  return push_command(Command/DrawCircle(x, y, r, 1.0, color))
+
 def draw_text(text, x, y, color):
   return push_command(Command/DrawText(text, x, y, 20.0, color))

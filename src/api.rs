@@ -6,8 +6,8 @@ use crate::convert::{FromTerm, IntoTerm};
 pub enum Command {
     Clear { color: Color },
     DrawLine { x1: f32, y1: f32, x2: f32, y2: f32, thickness: f32, color: Color },
+    DrawCircle { x: f32, y: f32, r: f32, thickness: f32, color: Color },
     DrawText { text: String, x: f32, y: f32, font_size: f32, color: Color },
-    // Exit,
 }
 
 #[derive(Debug)]
@@ -60,6 +60,13 @@ impl FromTerm for Command {
             let thickness = FromTerm::from_term(args.get(5)?)?;
             let color = FromTerm::from_term(args.get(6)?)?;
             Some(Command::DrawLine { x1, y1, x2, y2, thickness, color })
+        } else if tag == "api/Command/Command/DrawCircle/tag" {
+            let x = FromTerm::from_term(args.get(1)?)?;
+            let y = FromTerm::from_term(args.get(2)?)?;
+            let r = FromTerm::from_term(args.get(3)?)?;
+            let thickness = FromTerm::from_term(args.get(4)?)?;
+            let color = FromTerm::from_term(args.get(5)?)?;
+            Some(Command::DrawCircle { x, y, r, thickness, color })
         } else if tag == "api/Command/Command/DrawText/tag" {
             let text = FromTerm::from_term(args.get(1)?)?;
             let x = FromTerm::from_term(args.get(2)?)?;
