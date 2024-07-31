@@ -25,6 +25,7 @@ def tick(player, input):
   xform = player.xform
   pbody = player.pbody
 
+  # Accelerate w/ up key
   if InputBuffer/get_key(input, KeyCode/UP):
     open PhysicsBody: pbody
     fx, fy = Transform/front(xform)
@@ -34,8 +35,7 @@ def tick(player, input):
   else:
     pbody, thrust = pbody, FALSE
 
-  xform = PhysicsBody/step(1.0, pbody, xform)
-  
+  # Rotate w/ left/right keys
   if InputBuffer/get_key(input, KeyCode/RIGHT):
     xform = Transform/rotate(-1.0 * PLAYER_TURN, xform)
   else:
@@ -45,10 +45,19 @@ def tick(player, input):
     xform = Transform/rotate(PLAYER_TURN, xform)
   else:
     xform = xform
+  
+  xform = PhysicsBody/step(1.0, pbody, xform)
+  xform = wrap(xform)
 
   # Workaround for compiler error (can't find Player constructor)
   return Player(xform, pbody, thrust)
 
+
+def wrap(xform):
+  open Transform: xform
+  x = Math/mod(xform.x, to_f24(SCREEN_WIDTH))
+  y = Math/mod(xform.y, to_f24(SCREEN_HEIGHT))
+  return Transform(x, y, xform.rot)
 
 def draw(player):
   open Player: player

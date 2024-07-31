@@ -41,6 +41,7 @@ def tick(state):
       open Player: player
       px, py = Transform/apply(player.xform, 0.0, -14.0)
       vx, vy = Transform/front(player.xform)
+      vx, vy = 10.0 * vx, 10.0 * vy
       bullets = List/Cons(Bullet/new(px, py, vx, vy), bullets)
     else:
       bullets = bullets
