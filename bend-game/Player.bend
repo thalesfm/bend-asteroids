@@ -9,8 +9,6 @@ import ./InputBuffer
 import ./PhysicsBody
 import ./Transform
 
-PLAYER_WIDTH  = 17.0
-PLAYER_HEIGHT = 22.0
 PLAYER_ACCEL  = 0.05
 PLAYER_TURN   = 0.1
 
