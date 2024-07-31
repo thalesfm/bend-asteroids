@@ -7,10 +7,10 @@ import ./Transform
 
 object Asteroid { xform, pbody, r }
 
-def new(x, y, vx, vy):
+def new(x, y, vx, vy, r):
   xform = Transform(x, y, 0.0)
   pbody = PhysicsBody(vx, vy, 0.01)
-  return Asteroid(xform, pbody, 30.0)
+  return Asteroid(xform, pbody, r)
 
 def coll(asteroid):
   open Asteroid: asteroid
@@ -24,6 +24,22 @@ def tick(asteroid):
   pbody = asteroid.pbody
   xform = PhysicsBody/step(1.0, xform, pbody)
   return Asteroid(xform, pbody, asteroid.r)
+
+def split(asteroid):
+  open Asteroid: asteroid
+
+  if asteroid.r < 10.0:
+    return []
+  else:
+    xform = asteroid.xform
+    open Transform: xform
+    pbody = asteroid.pbody
+    open PhysicsBody: pbody
+
+    return [
+      Asteroid/new(xform.x, xform.y, pbody.vy, -1.0 * pbody.vx, asteroid.r / 2.0),
+      Asteroid/new(xform.x, xform.y, -1.0 * pbody.vy, pbody.vx, asteroid.r / 2.0)
+    ]
 
 def draw(asteroid):
   open Asteroid: asteroid

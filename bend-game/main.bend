@@ -22,7 +22,7 @@ def init():
   py = to_f24(SCREEN_HEIGHT) / 2.0
   player = Player/new(px, py)
   bullets = []
-  asteroids = [Asteroid/new(30.0, 30.0, 1.0, 1.0)]
+  asteroids = [Asteroid/new(30.0, 30.0, 1.0, 1.0, 30.0)]
   return State(TRUE, player, bullets, asteroids, InputBuffer/new)
 
 def tick(state):
@@ -47,27 +47,30 @@ def tick(state):
     else:
       bullets = bullets
     
-    fold asteroids:
-      case List/Nil:
-        asteroids = List/Nil
-      case List/Cons:
-        if check_collision(asteroids.head, bullets):
-          asteroids = asteroids.tail
-        else:
-          asteroids = List/Cons(asteroids.head, asteroids.tail)
+    asteroids, bullets = check_collisions(asteroids, bullets)
     
     input = InputBuffer/clear_key_down(state.input)
     return State(FALSE, player, bullets, asteroids, input)
 
-def check_collision(asteroid, bullets):
-  fold bullets:
+def check_collisions(asteroids, bullets):
+  match asteroids:
     case List/Nil:
-      return FALSE
+      return List/Nil, bullets
+    case List/Cons:
+      asteroid_pieces, bullets = check_asteroid_collisions(asteroids.head, bullets)
+      asteroids, bullets = check_collisions(asteroids.tail, bullets)
+      return List/concat(asteroid_pieces, asteroids), bullets
+
+def check_asteroid_collisions(asteroid, bullets):
+  match bullets:
+    case List/Nil:
+      return [asteroid], List/Nil
     case List/Cons:
       if Collider/check(Asteroid/coll(asteroid), Bullet/coll(bullets.head)):
-        return TRUE
+        return Asteroid/split(asteroid), bullets.tail
       else:
-        return bullets.tail
+        asteroid_pieces, bullets_tail = check_asteroid_collisions(asteroid, bullets.tail)
+        return asteroid_pieces, List/Cons(bullets.head, bullets_tail)
 
 def draw(state):
   open State: state
