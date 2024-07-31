@@ -1,5 +1,6 @@
 from ./actions import *
 from ./api/Color import *
+import ./Collider
 import ./CommandWriter
 import ./PhysicsBody
 import ./Transform
@@ -8,16 +9,20 @@ object Asteroid { xform, pbody, r }
 
 def new(x, y, vx, vy):
   xform = Transform(x, y, 0.0)
-  pbody = PhysicsBody(vx, vy, 0.0)
+  pbody = PhysicsBody(vx, vy, 0.01)
   return Asteroid(xform, pbody, 30.0)
+
+def coll(asteroid):
+  open Asteroid: asteroid
+  xform = asteroid.xform
+  open Transform: xform
+  return Collider/Circle(xform.x, xform.y, asteroid.r)
 
 def tick(asteroid):
   open Asteroid: asteroid
   xform = asteroid.xform
   pbody = asteroid.pbody
   xform = PhysicsBody/step(1.0, xform, pbody)
-  open Transform: xform
-  xform = Transform(xform.x, xform.y, xform.rot + 0.05)
   return Asteroid(xform, pbody, asteroid.r)
 
 def draw(asteroid):

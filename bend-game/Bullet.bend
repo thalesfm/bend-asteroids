@@ -1,5 +1,6 @@
 from ./actions import *
 from ./api/Color import *
+import ./Collider
 import ./CommandWriter
 import ./PhysicsBody
 import ./Transform
@@ -10,6 +11,12 @@ def new(x, y, vx, vy):
   xform = Transform(x, y, 0.0)
   pbody = PhysicsBody(vx, vy, 0.0)
   return Bullet(xform, pbody)
+
+def coll(bullet):
+  open Bullet: bullet
+  xform = bullet.xform
+  open Transform: xform
+  return Collider/Point(xform.x, xform.y)
 
 def tick(bullet):
   open Bullet: bullet

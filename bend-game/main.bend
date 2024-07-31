@@ -6,7 +6,7 @@ from ./util import *
 from ./util/Bool import (TRUE, FALSE)
 import ./Asteroid
 import ./Bullet
-import ./CircleCollider
+import ./Collider
 import ./CommandBuffer
 import ./CommandWriter
 import ./InputBuffer
@@ -60,18 +60,11 @@ def tick(state):
     return State(FALSE, player, bullets, asteroids, input)
 
 def check_collision(asteroid, bullets):
-  open Asteroid: asteroid
-  xform = asteroid.xform
-  open Transform: xform
   fold bullets:
     case List/Nil:
       return FALSE
     case List/Cons:
-      bullet = bullets.head
-      open Bullet: bullet
-      bullet_xform = bullet.xform
-      open Transform: bullet_xform
-      if CircleCollider/check_point(xform.x, xform.y, asteroid.r, bullet_xform.x, bullet_xform.y):
+      if Collider/check(Asteroid/coll(asteroid), Bullet/coll(bullets.head)):
         return TRUE
       else:
         return bullets.tail
