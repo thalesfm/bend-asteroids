@@ -9,13 +9,9 @@ import ./InputBuffer
 import ./PhysicsBody
 import ./Transform
 
-PLAYER_ACCEL  = 0.05
-PLAYER_TURN   = 0.1
-
 object Player { xform, pbody, thrust }
 
 def new(x, y):
-  # Workaround for compiler error (can't find Player constructor)
   xform = Transform(x, y, 0.0)
   pbody = PhysicsBody(0.0, 0.0, 0.0)
   return Player(xform, pbody, FALSE)
@@ -49,7 +45,6 @@ def tick(player, input):
   xform = PhysicsBody/step(1.0, pbody, xform)
   xform = wrap(xform)
 
-  # Workaround for compiler error (can't find Player constructor)
   return Player(xform, pbody, thrust)
 
 

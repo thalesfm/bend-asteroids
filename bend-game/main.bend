@@ -6,6 +6,7 @@ from ./util import *
 from ./util/Bool import (TRUE, FALSE)
 import ./Asteroid
 import ./Bullet
+import ./CircleCollider
 import ./CommandBuffer
 import ./CommandWriter
 import ./InputBuffer
@@ -45,9 +46,35 @@ def tick(state):
       bullets = List/Cons(Bullet/new(px, py, vx, vy), bullets)
     else:
       bullets = bullets
-
+    
+    fold asteroids:
+      case List/Nil:
+        asteroids = List/Nil
+      case List/Cons:
+        if check_collision(asteroids.head, bullets):
+          asteroids = asteroids.tail
+        else:
+          asteroids = List/Cons(asteroids.head, asteroids.tail)
+    
     input = InputBuffer/clear_key_down(state.input)
     return State(FALSE, player, bullets, asteroids, input)
+
+def check_collision(asteroid, bullets):
+  open Asteroid: asteroid
+  xform = asteroid.xform
+  open Transform: xform
+  fold bullets:
+    case List/Nil:
+      return FALSE
+    case List/Cons:
+      bullet = bullets.head
+      open Bullet: bullet
+      bullet_xform = bullet.xform
+      open Transform: bullet_xform
+      if CircleCollider/check_point(xform.x, xform.y, asteroid.r, bullet_xform.x, bullet_xform.y):
+        return TRUE
+      else:
+        return bullets.tail
 
 def draw(state):
   open State: state
@@ -63,6 +90,7 @@ def draw(state):
   open CommandWriter: cw
   return CommandBuffer/flush(cw.buf)
 
+# TODO: Simplify using List/map, etc.
 def draw_asteroids(asteroids):
   match asteroids:
     case List/Nil:
@@ -73,6 +101,7 @@ def draw_asteroids(asteroids):
         * <- draw_asteroids(asteroids.tail)
         return wrap(*)
 
+# TODO: Simplify using List/map, etc.
 def draw_bullets(bullets):
   match bullets:
     case List/Nil:
