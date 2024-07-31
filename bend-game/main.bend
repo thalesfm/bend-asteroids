@@ -38,7 +38,7 @@ def draw(state):
   open State: state
   with CommandWriter:
     * <- clear(BLACK)
-    * <- draw_stars(Random/seed(5678))
+    # * <- draw_stars(Random/seed(5678))
     if state.paused:
       cw = draw_text("Press SPACE to start", 230.0, 300.0, WHITE)
     else:
