@@ -45,7 +45,7 @@ impl<'a, 'b> EventHandler for KeyEventForwarder<'a, 'b> {
 
 fn window_conf() -> Conf {
     Conf {
-        window_title: "Bend Game".to_owned(),
+        window_title: "Asteroids".to_owned(),
         window_width: 640,
         window_height: 480,
         window_resizable: false,
