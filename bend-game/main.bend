@@ -18,23 +18,21 @@ def init():
   px = to_f24(SCREEN_WIDTH)  / 2.0
   py = to_f24(SCREEN_HEIGHT) / 2.0
   player = Player/new(px, py)
-  asteroids = [0] # List/Cons(Asteroid/new(30.0, 30.0), List/Nil)
+  asteroids = [Asteroid/new(30.0, 30.0, 1.0, 1.0)]
   return State(TRUE, player, asteroids, InputBuffer/new)
 
 def tick(state):
   open State: state
 
-  if InputBuffer/get_key(state.input, KeyCode/SPACE):
-    paused = FALSE
-  else:
-    paused = state.paused
-
-  if paused:
-    player = state.player
+  if state.paused:
+    if InputBuffer/get_key(state.input, KeyCode/SPACE):
+      return State(FALSE, state.player, state.asteroids, state.input)
+    else:
+      return state
   else:
     player = Player/tick(state.player, state.input)
-
-  return State(paused, player, state.asteroids, state.input)
+    asteroids = List/map(Asteroid/tick, state.asteroids)
+    return State(FALSE, player, asteroids, state.input)
 
 def draw(state):
   open State: state
@@ -44,9 +42,17 @@ def draw(state):
     if state.paused:
       cw = draw_text("Press SPACE to start", 230.0, 300.0, WHITE)
     else:
+      * <- draw_asteroids(state.asteroids)
       cw = Player/draw(state.player)
   open CommandWriter: cw
   return CommandBuffer/flush(cw.buf)
+
+def draw_asteroids(asteroids):
+  match asteroids:
+    case List/Nil:
+      return CommandWriter/tell(CommandBuffer/new)
+    case List/Cons:
+      return Asteroid/draw(asteroids.head)
 
 def draw_stars(rgen):
   bend i = 0, rgen = rgen:

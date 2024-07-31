@@ -3,76 +3,64 @@ from ./api import *
 from ./api/Color import *
 from ./config import *
 from ./util import *
-import ./InputBuffer
+from ./util/Bool import (TRUE, FALSE)
 import ./CommandWriter
+import ./InputBuffer
+import ./PhysicsBody
+import ./Transform
 
 PLAYER_WIDTH  = 17.0
 PLAYER_HEIGHT = 22.0
 PLAYER_ACCEL  = 0.05
 PLAYER_TURN   = 0.1
 
-object Player { px, py, dx, dy, angle, thrust }
-
-def forward(angle):
-  fx = Math/sin_(angle)
-  fy = -1.0 * Math/cos_(angle)
-  return fx, fy
+object Player { xform, pbody, thrust }
 
 def new(x, y):
-  # return Player {
-  #   px: to_f24(SCREEN_WIDTH)  / 2.0,
-  #   py: to_f24(SCREEN_HEIGHT) / 2.0,
-  #   dx: 0.0,
-  #   dy: 0.0,
-  #   angle: 0.0,
-  #   thrust: 0,
-  # }
-
   # Workaround for compiler error (can't find Player constructor)
-  # x = to_f24(SCREEN_WIDTH)  / 2.0
-  # y = to_f24(SCREEN_HEIGHT) / 2.0
-  return Player(x, y, 0.0, 0.0, 0.0, 0)
+  xform = Transform(x, y, 0.0)
+  pbody = PhysicsBody(0.0, 0.0, 0.0)
+  return Player(xform, pbody, FALSE)
 
 def tick(player, input):
   open Player: player
-  fx, fy = forward(player.angle)
+  xform = player.xform
+  pbody = player.pbody
 
   if InputBuffer/get_key(input, KeyCode/UP):
-    dx = player.dx + PLAYER_ACCEL * fx
-    dy = player.dy + PLAYER_ACCEL * fy
-    dx, dy, thrust = dx, dy, 1
+    open PhysicsBody: pbody
+    fx, fy = Transform/front(xform)
+    vx = pbody.vx + PLAYER_ACCEL * fx
+    vy = pbody.vy + PLAYER_ACCEL * fy
+    pbody, thrust = PhysicsBody(vx, vy, 0.0), TRUE
   else:
-    dx, dy, thrust = player.dx, player.dy, 0
+    pbody, thrust = pbody, FALSE
+
+  xform = PhysicsBody/step(1.0, pbody, xform)
   
   if InputBuffer/get_key(input, KeyCode/RIGHT):
-    angle = player.angle + PLAYER_TURN
+    xform = Transform/rotate(PLAYER_TURN, xform)
   else:
-    angle = player.angle
-  if InputBuffer/get_key(input, KeyCode/LEFT):
-    angle = angle - PLAYER_TURN
-  else:
-    angle = angle
+    xform = xform
 
-  # return Player {
-  #   px: player.px + dx,
-  #   py: player.py + dy,
-  #   dx: dx,
-  #   dy: dy,
-  #   angle: angle,
-  #   thrust: thrust,
-  # }
+  if InputBuffer/get_key(input, KeyCode/LEFT):
+    xform = Transform/rotate(-1.0 * PLAYER_TURN, xform)
+  else:
+    xform = xform
 
   # Workaround for compiler error (can't find Player constructor)
-  return Player(player.px + dx, player.py + dy, dx, dy, angle, thrust)
+  return Player(xform, pbody, thrust)
 
 
 def draw(player):
   open Player: player
-  fx, fy = forward(player.angle)
-  rx = -1.0 * fy
-  ry = fx
-  cx = player.px - fx * PLAYER_HEIGHT / 3.0
-  cy = player.py - fy * PLAYER_HEIGHT / 3.0
+  xform = player.xform
+  open Transform: xform
+  px, py = xform.x, xform.y
+  fx, fy = Transform/front(xform)
+  rx, ry = Transform/right(xform)
+  cx = px - fx * PLAYER_HEIGHT / 3.0
+  cy = py - fy * PLAYER_HEIGHT / 3.0
   x1 = cx + fx * PLAYER_HEIGHT
   y1 = cy + fy * PLAYER_HEIGHT
   x2 = cx - rx * PLAYER_WIDTH / 2.0
