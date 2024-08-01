@@ -46,6 +46,7 @@ impl<'a> App<'a> {
     }
 
     pub fn init(&mut self) -> Result<State, Diagnostics> {
+        // println!("App::init");
         let pats = [None, Some(Name::new("init")), None, None, None];
         let term = Term::rfold_lams(
             Term::Var { nam: Name::new("init") },
@@ -54,6 +55,7 @@ impl<'a> App<'a> {
     }
 
     pub fn tick(&mut self, state: &State) -> Result<State, Diagnostics> {
+        // println!("App::tick");
         let pats = [None, None, Some(Name::new("tick")), None, None];
         let term = Term::rfold_lams(
             Term::app(Term::Var { nam: Name::new("tick") }, state.clone()),
@@ -62,6 +64,7 @@ impl<'a> App<'a> {
     }
 
     pub fn draw(&mut self, state: &State) -> Result<Vec<Command>, Diagnostics> {
+        // println!("App::draw");
         let pats = [None, None, None, Some(Name::new("draw")), None];
         let term = Term::rfold_lams(
             Term::app(Term::Var { nam: Name::new("draw") }, state.clone()),
@@ -73,6 +76,7 @@ impl<'a> App<'a> {
     }
 
     pub fn when(&mut self, event: Event, state: &State) -> Result<State, Diagnostics> {
+        // println!("App::when");
         let pats = [None, None, None, None, Some(Name::new("when"))];
         let term = Term::rfold_lams(
             Term::app(
@@ -88,6 +92,7 @@ impl<'a> App<'a> {
         let mut labels = self.labels.clone();
 
         // Convert/push args
+        // let start = std::time::Instant::now();
         let args = args.iter().map(|term| -> Result<_, Diagnostics> {
             // Sometimes causes lib to panic; should desugar if possible
             let term = self.desugar_term(term)?;
@@ -95,16 +100,21 @@ impl<'a> App<'a> {
             Ok(self.hvm.push_net(&net))
         });
         let args = args.collect::<Result<_, _>>()?;
+        // println!("- Convert/push args: {:.2} ms", 1000.0 * start.elapsed().as_secs_f32());
 
         // Evaluate main
+        // let start = std::time::Instant::now();
         let main = self.hvm.get_ref("main").unwrap();
         let result = self.hvm.call(main, args);
         let result = self.hvm.pop_net(result).ok_or("HVM Error".to_owned())?;
+        // println!("- Evaluate/pop: {:.2} ms", 1000.0 * start.elapsed().as_secs_f32());
 
         // Readback
+        // let start = std::time::Instant::now();
         let adt_encoding = CompileOpts::default().adt_encoding;
         let linear_readback = RunOpts::default().linear_readback;
         let (result, _) = readback_hvm_net(&result, &self.book, &labels, linear_readback, adt_encoding);
+        // println!("- Readback: {:.2} ms", 1000.0 * start.elapsed().as_secs_f32());
         Ok(result)
     }
 
