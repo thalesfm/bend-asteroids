@@ -31,43 +31,45 @@ def tick(state):
   mode = Lens/get(GameState/mode, state)
   inpb = Lens/get(GameState/input, state)
 
-  with State:
-    match mode:
-      case GameMode/Paused:
-        if InputBuffer/get_key_down(KeyCode/SPACE, inpb):
-          do_tick = State/mod(Lens/set(GameState/mode, GameMode/Playing))
-        else:
-          do_tick = wrap(*)
-
-      case GameMode/Playing:
-        * <- Lens/zoom(GameState/player, State/mod(Player/tick(inpb)))
-        * <- Lens/zoom(GameState/bullets, State/mod(List/map(Bullet/tick)))
-        * <- Lens/zoom(GameState/asteroids, State/mod(List/map(Asteroid/tick)))
-
-        # TODO: Messy; clean up
-        bullets <- State/prj(Lens/get(GameState/bullets))
-        asteroids <- State/prj(Lens/get(GameState/asteroids))
-        asteroids, bullets = check_collisions(asteroids, bullets)
-        # * <- State/mod(Lens/set(GameState/bullets, bullets))
-        * <- State/mod(Lens/set(GameState/asteroids, asteroids))
+  def do_tick():
+    with State:
+      match mode:
+        case GameMode/Paused:
+          if InputBuffer/get_key_down(KeyCode/SPACE, inpb):
+            ret = State/mod(Lens/set(GameState/mode, GameMode/Playing))
+          else:
+            ret = wrap(*)
   
-        if InputBuffer/get_key_down(KeyCode/DOWN, inpb):
-          player <- State/prj(Lens/get(GameState/player))
-          open Player: player
-          px, py = Transform/apply(player.xform, 0.0, -14.0)
-          vx, vy = Transform/front(player.xform)
-          vx, vy = 10.0 * vx, 10.0 * vy
-          bullets = List/Cons(Bullet/new(px, py, vx, vy), bullets)
-          shoot = State/mod(Lens/set(GameState/bullets, bullets))
-        else:
-          shoot = wrap(*)
-
-        * <- shoot
-        * <- Lens/zoom(GameState/input, State/mod(InputBuffer/clear_key_down))
-        do_tick = wrap(*)
-
-      case GameMode/GameOver:
-        do_tick = wrap(*)
+        case GameMode/Playing:
+          * <- Lens/zoom(GameState/player, State/mod(Player/tick(inpb)))
+          * <- Lens/zoom(GameState/bullets, State/mod(List/map(Bullet/tick)))
+          * <- Lens/zoom(GameState/asteroids, State/mod(List/map(Asteroid/tick)))
+  
+          # TODO: Messy; clean up
+          bullets <- State/prj(Lens/get(GameState/bullets))
+          asteroids <- State/prj(Lens/get(GameState/asteroids))
+          asteroids, bullets = check_collisions(asteroids, bullets)
+          # * <- State/mod(Lens/set(GameState/bullets, bullets))
+          * <- State/mod(Lens/set(GameState/asteroids, asteroids))
+    
+          if InputBuffer/get_key_down(KeyCode/DOWN, inpb):
+            player <- State/prj(Lens/get(GameState/player))
+            open Player: player
+            px, py = Transform/apply(player.xform, 0.0, -14.0)
+            vx, vy = Transform/front(player.xform)
+            vx, vy = 10.0 * vx, 10.0 * vy
+            bullets = List/Cons(Bullet/new(px, py, vx, vy), bullets)
+            shoot = State/mod(Lens/set(GameState/bullets, bullets))
+          else:
+            shoot = wrap(*)
+  
+          * <- shoot
+          * <- Lens/zoom(GameState/input, State/mod(InputBuffer/clear_key_down))
+          ret = wrap(*)
+  
+        case GameMode/GameOver:
+          ret = wrap(*)
+    return ret
 
   return State/exec(do_tick, state)
 
