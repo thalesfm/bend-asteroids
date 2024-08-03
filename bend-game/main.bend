@@ -12,9 +12,11 @@ import ./CommandWriter
 import ./GameMode
 import ./GameState
 import ./InputBuffer
+import ./Lens
 import ./Player
 import ./Random
 import ./Star
+import ./State
 import ./Transform
 
 def init():
@@ -141,6 +143,16 @@ def when(event, state):
       input = InputBuffer/register_key_down(state.input, event.keycode)
     case Event/KeyUp:
       input = InputBuffer/register_key_up(state.input, event.keycode)
+  
+  # with State:
+  #   * <- State/modify(GameState/set_input(input))
+  #   st = wrap(*)
+  # return State/exec(st, state)
+
+  # state = Lens/set(GameState/input, input, state)
+  # return state
+  # set_input = GameState/set_input
+  # return set_input(input, state)
   return GameState/set_input(input, state)
 
 def main():
