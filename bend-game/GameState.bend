@@ -14,9 +14,9 @@ def get_input(state):
   open GameState: state
   return state.input
 
-def set_input(input, state):
+def set_input(_input, state):
   open GameState: state
-  return GameState(state.mode, state.player, state.bullets, state.asteroids, input)
+  return GameState(state.mode, state.player, state.bullets, state.asteroids, _input)
 
 def input():
   return Lens(get_input, set_input)
