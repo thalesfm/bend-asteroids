@@ -93,6 +93,7 @@ async fn main() {
         // drop(forwarder); // Implicit?
 
         // Update the app's state
+        println!("state: {}\n", state);
         state = app.tick(&state).unwrap();
         // println!("state: {}", state);
         // println!("state: {:?}", state);

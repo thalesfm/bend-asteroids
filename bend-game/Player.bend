@@ -16,13 +16,13 @@ def new(x, y):
   pbody = PhysicsBody(0.0, 0.0, 0.0)
   return Player(xform, pbody, FALSE)
 
-def tick(player, input):
+def tick(input, player):
   open Player: player
   xform = player.xform
   pbody = player.pbody
 
   # Accelerate w/ up key
-  if InputBuffer/get_key(input, KeyCode/UP):
+  if InputBuffer/get_key(KeyCode/UP, input):
     open PhysicsBody: pbody
     fx, fy = Transform/front(xform)
     vx = pbody.vx + PLAYER_ACCEL * fx
@@ -32,12 +32,12 @@ def tick(player, input):
     pbody, thrust = pbody, FALSE
 
   # Rotate w/ left/right keys
-  if InputBuffer/get_key(input, KeyCode/RIGHT):
+  if InputBuffer/get_key(KeyCode/RIGHT, input):
     xform = Transform/rotate(-1.0 * PLAYER_TURN, xform)
   else:
     xform = xform
 
-  if InputBuffer/get_key(input, KeyCode/LEFT):
+  if InputBuffer/get_key(KeyCode/LEFT, input):
     xform = Transform/rotate(PLAYER_TURN, xform)
   else:
     xform = xform
