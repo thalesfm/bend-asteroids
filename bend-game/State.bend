@@ -13,8 +13,12 @@ def get(state):
   return (state, state)
 
 # put : s -> State s ()
-def put(state, _state):
-  return (*, state)
+def put(state):
+  # Workaround for compiler error
+  # (attempt to clone non-affine global reference)
+  def run(_state):
+    return (*, state)
+  return run
 
 # gets : (s -> a) -> State s a
 def gets(fun):
@@ -25,9 +29,9 @@ def gets(fun):
   return run
 
 # modify : (s -> s) -> State s ()
-# def modify(fun, state):
-#   return (*, fun(state))
 def modify(fun):
+  # Workaround for compiler error
+  # (attempt to clone non-affine global reference)
   def run(state):
     return (*, fun(state))
   return run

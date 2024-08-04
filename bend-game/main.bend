@@ -27,7 +27,7 @@ import ./Player
 import ./Random
 import ./Star
 import ./State
-from ./State import (gets, modify)
+from ./State import (gets, put, modify)
 import ./Transform
 
 def init():
@@ -49,6 +49,54 @@ def tick():
           do_tick = wrap(*)
 
       case GameMode/Playing:
+        # Borken:
+        # * <- zoom(Lens/compose(playerL, Player/xformL), modify(Transform/translate(0.1, 0.0)))
+
+        # Works:
+        # xform <- gets(view(Lens/compose(playerL, Player/xformL)))
+        # * <- modify(set(Lens/compose(playerL, Player/xformL), xform))
+
+        # Borken:
+        # xform <- gets(view(Lens/compose(playerL, Player/xformL)))
+        # * <- zoom(Lens/compose(playerL, Player/xformL), put(xform))
+
+        # Borken:
+        # xform <- gets(view(Lens/compose(playerL, Player/xformL)))
+        # * <- zoom(Lens/compose(playerL, Player/xformL), modify(lambda _: xform))
+
+        # Works:
+        # xform <- gets(view(Lens/compose(playerL, Player/xformL)))
+        # * <- zoom(playerL, zoom(Player/xformL, put(xform)))
+
+        # Works:
+        # xform <- gets(view(Lens/compose(playerL, Player/xformL)))
+        # * <- zoom(playerL, zoom(Player/xformL, modify(lambda _: xform)))
+
+        # Borken:
+        # xform <- zoom(Lens/compose(playerL, Player/xformL), State/get)
+        # * <- zoom(playerL, zoom(Player/xformL, put(xform)))
+
+        #####################
+        # BREAKDOWN BY LINE #
+        #####################
+
+        # Working (1st line):
+        # xform <- gets(view(Lens/compose(playerL, Player/xformL)))
+
+        # Borken (1st line):
+        # xform <- zoom(Lens/compose(playerL, Player/xformL), State/get)
+
+        # Working (2nd line):
+        # * <- modify(set(Lens/compose(playerL, Player/xformL), xform))
+        # * <- zoom(playerL, zoom(Player/xformL, put(xform)))
+        # * <- zoom(playerL, zoom(Player/xformL, modify(lambda _: xform)))
+
+        # Borken (2nd line):
+        # * <- zoom(Lens/compose(playerL, Player/xformL), put(xform))
+        # * <- zoom(Lens/compose(playerL, Player/xformL), modify(lambda _: xform))
+
+        # EVERY BROKEN LINE CONTAINS zoom . compose
+
         * <- zoom(playerL, modify(Player/tick(input)))
         * <- zoom(bulletsL, modify(map(Bullet/tick)))
         * <- zoom(asteroidsL, modify(map(Asteroid/tick)))
@@ -62,14 +110,14 @@ def tick():
         asteroids, bullets = check_collisions(asteroids, bullets)
         * <- modify(set(asteroidsL, asteroids))
         * <- modify(set(bulletsL, bullets))
-  
         do_tick = wrap(*)
 
       case GameMode/GameOver:
         do_tick = wrap(*)
 
     * <- do_tick
-    do_tick = zoom(inputL, modify(clear_key_down))
+    * <- zoom(inputL, modify(clear_key_down))
+    do_tick = wrap(*)
 
   return State/exec(do_tick)
 

@@ -35,10 +35,10 @@ def set_pbody(pbody, player):
   return Player(player._xform, pbody, player._thrust)
 
 def xformL():
-  return Lens(get_xform, set_xform)
+  return Lens/new(get_xform, set_xform)
 
 def pbodyL():
-  return Lens(get_pbody, set_pbody)
+  return Lens/new(get_pbody, set_pbody)
 
 def tick(input, player):
   xform = Player/get_xform(player)

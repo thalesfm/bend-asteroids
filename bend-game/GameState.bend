@@ -49,16 +49,16 @@ def set_asteroids(_asteroids, state):
   return GameState(state._mode, state._input, state._player, state._bullets, _asteroids)
 
 def modeL():
-  return Lens(get_mode, set_mode)
+  return Lens/new(get_mode, set_mode)
 
 def inputL():
-  return Lens(get_input, set_input)
+  return Lens/new(get_input, set_input)
 
 def playerL():
-  return Lens(get_player, set_player)
+  return Lens/new(get_player, set_player)
 
 def bulletsL():
-  return Lens(get_bullets, set_bullets)
+  return Lens/new(get_bullets, set_bullets)
 
 def asteroidsL():
-  return Lens(get_asteroids, set_asteroids)
+  return Lens/new(get_asteroids, set_asteroids)

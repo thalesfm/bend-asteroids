@@ -1,38 +1,70 @@
 import ./State
+import ./util
+from ./util import const
+
+# type Lens:
+#  Getter { getter }
+#  Setter { setter }
+#  GetSet { getter, setter }
 
 object Lens {
-  getter,
-  setter,
+  getter, # s -> a
+  modify, # (a -> a) -> s -> s
 }
 
 def new(getter, setter):
-  return Lens(getter, setter)
+  def modify(fun, val):
+    return setter(fun(getter(val)), val)
+    # inner = getter(outer)
+    # inner = fun(inner)
+    # return setter(inner, outer)
+  return Lens(getter, modify)
+
+def compose(outerL, innerL):
+  open Lens: outerL
+  open Lens: innerL
+
+  getter = util/compose(innerL.getter, outerL.getter)
+  modify = util/compose(outerL.modify, innerL.modify)
+
+  # def getter(val):
+  #   return innerL.getter(outerL.getter(val))
+
+  # def modify(fun, val):
+  #   return outerL.modify(innerL.modify(fun), val)
+
+  # def modify(fun, val):
+  #   def innerFun(inner):
+  #     return innerL.modify(fun, inner)
+  #   return outerL.modify(innerFun, val)
+
+  return Lens(getter, modify)
 
 def view(lens):
   open Lens: lens
   return lens.getter
 
+def over(lens):
+  open Lens: lens
+  return lens.modify
+
 def set(lens):
   open Lens: lens
-  return lens.setter
+  # def setter(val):
+  #   return lens.modify(const(val))
+  def setter(inner, outer):
+    return lens.modify(const(inner), outer)
+  return setter
 
-def over(lens, fun, val):
-  open Lens: lens
-  return set(lens, fun(view(lens, val)), val)
-
-def compose(outerL, innerL):
-  def getter(val):
-    return view(innerL, view(outerL, val))
-  def setter(inner, val):
-    outer = set(innerL, inner, view(outerL, val))
-    return set(outerL, outer, val)
-  return Lens(getter, setter)
+# def mapped():
+#   def setter(lst):
 
 # zoom : Lens a b -> State b c -> State a c
-def zoom(lens, run1):
-  def run2(outer):
+def zoom(lens, runInner):
+  def runOuter(outer):
+    # TODO: Use modify instead of set
     inner = view(lens, outer)
-    (val, inner) = run1(inner)
+    (val, inner) = runInner(inner)
     outer = set(lens, inner, outer)
     return (val, outer)
-  return run2
+  return runOuter
