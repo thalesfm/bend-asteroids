@@ -53,6 +53,9 @@ def tick():
         * <- zoom(bulletsL, modify(map(Bullet/tick)))
         * <- zoom(asteroidsL, modify(map(Asteroid/tick)))
 
+        new_bullets <- zoom(playerL, gets(Player/shoot(input)))
+        * <- zoom(bulletsL, modify(List/concat(new_bullets)))
+
         # TODO: Messy; clean up
         bullets <- gets(view(bulletsL))
         asteroids <- gets(view(asteroidsL))
@@ -60,18 +63,7 @@ def tick():
         * <- modify(set(asteroidsL, asteroids))
         * <- modify(set(bulletsL, bullets))
   
-        # TODO: Move this to its own function (`Player/shoot`?)
-        if get_key_down(KeyCode/DOWN, input):
-          xform <- gets(view(Lens/compose(playerL, Player/xformL)))
-          px, py = Transform/apply(xform, 0.0, -14.0)
-          vx, vy = Transform/front(xform)
-          vx, vy = 10.0 * vx, 10.0 * vy
-          bullet = Bullet/new(px, py, vx, vy)
-          shoot = modify(over(bulletsL, List/Cons(bullet)))
-        else:
-          shoot = wrap(*)
-
-        do_tick = shoot
+        do_tick = wrap(*)
 
       case GameMode/GameOver:
         do_tick = wrap(*)

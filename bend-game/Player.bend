@@ -6,6 +6,7 @@ from ./util import *
 from ./util/Bool import (TRUE, FALSE)
 import ./CommandWriter
 import ./InputBuffer
+from ./InputBuffer import (get_key, get_key_down)
 import ./Lens
 import ./PhysicsBody
 import ./Transform
@@ -44,7 +45,7 @@ def tick(input, player):
   pbody = Player/get_pbody(player)
 
   # Accelerate w/ up key
-  if InputBuffer/get_key(KeyCode/UP, input):
+  if get_key(KeyCode/UP, input):
     open PhysicsBody: pbody
     fx, fy = Transform/front(xform)
     vx = pbody.vx + PLAYER_ACCEL * fx
@@ -54,12 +55,12 @@ def tick(input, player):
     pbody, thrust = pbody, FALSE
 
   # Rotate w/ left/right keys
-  if InputBuffer/get_key(KeyCode/RIGHT, input):
+  if get_key(KeyCode/RIGHT, input):
     xform = Transform/rotate(-1.0 * PLAYER_TURN, xform)
   else:
     xform = xform
 
-  if InputBuffer/get_key(KeyCode/LEFT, input):
+  if get_key(KeyCode/LEFT, input):
     xform = Transform/rotate(PLAYER_TURN, xform)
   else:
     xform = xform
@@ -69,6 +70,16 @@ def tick(input, player):
 
   return Player(xform, pbody, thrust)
 
+def shoot(input, player):
+  xform = Player/get_xform(player)
+
+  if get_key_down(KeyCode/DOWN, input):
+    px, py = Transform/apply(xform, 0.0, -14.0)
+    vx, vy = Transform/front(xform)
+    bullet = Bullet/new(px, py, 10.0 * vx, 10.0 * vy)
+    return [bullet]
+  else:
+    return []
 
 def wrap(xform):
   open Transform: xform
