@@ -20,6 +20,7 @@ from ./InputBuffer import (
   register_key_up
 )
 import ./Lens
+from ./Lens import (zoom)
 import ./Player
 import ./Random
 import ./Star
@@ -47,9 +48,9 @@ def tick(state):
           do_tick = wrap(*)
 
       case GameMode/Playing:
-        * <- Lens/zoom(GameState/player, State/mod(Player/tick(inpb)))
-        * <- Lens/zoom(GameState/bullets, State/mod(List/map(Bullet/tick)))
-        * <- Lens/zoom(GameState/asteroids, State/mod(List/map(Asteroid/tick)))
+        * <- zoom(GameState/player, State/mod(Player/tick(inpb)))
+        * <- zoom(GameState/bullets, State/mod(List/map(Bullet/tick)))
+        * <- zoom(GameState/asteroids, State/mod(List/map(Asteroid/tick)))
 
         # TODO: Messy; clean up
         bullets <- State/prj(Lens/get(GameState/bullets))
@@ -71,7 +72,7 @@ def tick(state):
           shoot = wrap(*)
         * <- shoot
 
-        do_tick = Lens/zoom(GameState/input, State/mod(clear_key_down))
+        do_tick = zoom(GameState/input, State/mod(clear_key_down))
 
       case GameMode/GameOver:
         do_tick = wrap(*)
@@ -163,10 +164,10 @@ def when(event):
   match event:
     case Event/KeyUp:
       handle = register_key_up(event.keycode)
-      handle = Lens/zoom(GameState/input, State/mod(handle))
+      handle = zoom(GameState/input, State/mod(handle))
     case Event/KeyDown:
       handle = register_key_down(event.keycode)
-      handle = Lens/zoom(GameState/input, State/mod(handle))
+      handle = zoom(GameState/input, State/mod(handle))
 
   return State/exec(handle)
 
