@@ -6,20 +6,42 @@ from ./util import *
 from ./util/Bool import (TRUE, FALSE)
 import ./CommandWriter
 import ./InputBuffer
+import ./Lens
 import ./PhysicsBody
 import ./Transform
 
-object Player { xform, pbody, thrust }
+object Player { _xform, _pbody, _thrust }
 
 def new(x, y):
   xform = Transform(x, y, 0.0)
   pbody = PhysicsBody(0.0, 0.0, 0.0)
   return Player(xform, pbody, FALSE)
 
-def tick(input, player):
+def get_xform(player):
   open Player: player
-  xform = player.xform
-  pbody = player.pbody
+  return player._xform
+
+def get_pbody(player):
+  open Player: player
+  return player._pbody
+
+def set_xform(xform, player):
+  open Player: player
+  return Player(xform, player._pbody, player._thrust)
+
+def set_pbody(pbody, player):
+  open Player: player
+  return Player(player._xform, pbody, player._thrust)
+
+def xformL():
+  return Lens(get_xform, set_xform)
+
+def pbodyL():
+  return Lens(get_pbody, set_pbody)
+
+def tick(input, player):
+  xform = Player/get_xform(player)
+  pbody = Player/get_pbody(player)
 
   # Accelerate w/ up key
   if InputBuffer/get_key(KeyCode/UP, input):
@@ -55,8 +77,7 @@ def wrap(xform):
   return Transform(x, y, xform.rot)
 
 def draw(player):
-  open Player: player
-  xform = player.xform
+  xform = Player/get_xform(player)
 
   x1, y1 = Transform/apply(xform,   0.0, -14.0)
   x2, y2 = Transform/apply(xform, -12.0,  14.0)
@@ -73,7 +94,8 @@ def draw(player):
     * <- draw_line(x4, y4, x5, y5, WHITE)
     cw = wrap(*)
   
-  if player.thrust:
+  open Player: player
+  if player._thrust:
     with CommandWriter:
       * <- cw
       * <- draw_line(x6, y6, x7, y7, WHITE)

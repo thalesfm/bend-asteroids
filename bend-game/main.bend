@@ -12,6 +12,13 @@ import ./CommandWriter
 import ./GameMode
 import ./GameState
 import ./InputBuffer
+from ./InputBuffer import (
+  clear_key_down,
+  get_key,
+  get_key_down,
+  register_key_down,
+  register_key_up
+)
 import ./Lens
 import ./Player
 import ./Random
@@ -28,48 +35,46 @@ def init():
   return GameState(GameMode/Paused, player, bullets, asteroids, InputBuffer/new)
 
 def tick(state):
-  mode = Lens/get(GameState/mode, state)
-  inpb = Lens/get(GameState/input, state)
+  mode = GameState/get_mode(state)
+  inpb = GameState/get_input(state)
 
-  def do_tick():
-    with State:
-      match mode:
-        case GameMode/Paused:
-          if InputBuffer/get_key_down(KeyCode/SPACE, inpb):
-            ret = State/mod(Lens/set(GameState/mode, GameMode/Playing))
-          else:
-            ret = wrap(*)
+  with State:
+    match mode:
+      case GameMode/Paused:
+        if get_key_down(KeyCode/SPACE, inpb):
+          do_tick = State/mod(Lens/set(GameState/mode, GameMode/Playing))
+        else:
+          do_tick = wrap(*)
+
+      case GameMode/Playing:
+        * <- Lens/zoom(GameState/player, State/mod(Player/tick(inpb)))
+        * <- Lens/zoom(GameState/bullets, State/mod(List/map(Bullet/tick)))
+        * <- Lens/zoom(GameState/asteroids, State/mod(List/map(Asteroid/tick)))
+
+        # TODO: Messy; clean up
+        bullets <- State/prj(Lens/get(GameState/bullets))
+        asteroids <- State/prj(Lens/get(GameState/asteroids))
+        asteroids, bullets = check_collisions(asteroids, bullets)
+        * <- State/mod(Lens/set(GameState/asteroids, asteroids))
   
-        case GameMode/Playing:
-          * <- Lens/zoom(GameState/player, State/mod(Player/tick(inpb)))
-          * <- Lens/zoom(GameState/bullets, State/mod(List/map(Bullet/tick)))
-          * <- Lens/zoom(GameState/asteroids, State/mod(List/map(Asteroid/tick)))
-  
-          # TODO: Messy; clean up
-          bullets <- State/prj(Lens/get(GameState/bullets))
-          asteroids <- State/prj(Lens/get(GameState/asteroids))
-          asteroids, bullets = check_collisions(asteroids, bullets)
-          # * <- State/mod(Lens/set(GameState/bullets, bullets))
-          * <- State/mod(Lens/set(GameState/asteroids, asteroids))
-    
-          if InputBuffer/get_key_down(KeyCode/DOWN, inpb):
-            player <- State/prj(Lens/get(GameState/player))
-            open Player: player
-            px, py = Transform/apply(player.xform, 0.0, -14.0)
-            vx, vy = Transform/front(player.xform)
-            vx, vy = 10.0 * vx, 10.0 * vy
-            bullets = List/Cons(Bullet/new(px, py, vx, vy), bullets)
-            shoot = State/mod(Lens/set(GameState/bullets, bullets))
-          else:
-            shoot = wrap(*)
-  
-          * <- shoot
-          * <- Lens/zoom(GameState/input, State/mod(InputBuffer/clear_key_down))
-          ret = wrap(*)
-  
-        case GameMode/GameOver:
-          ret = wrap(*)
-    return ret
+        # TODO: Move this to its own function (`Player/shoot`?)
+        if get_key_down(KeyCode/DOWN, inpb):
+          xform <- State/prj(Lens/get(Lens/compose(GameState/player, Player/xformL)))
+          px, py = Transform/apply(xform, 0.0, -14.0)
+          vx, vy = Transform/front(xform)
+          vx, vy = 10.0 * vx, 10.0 * vy
+          # bullets = List/Cons(Bullet/new(px, py, vx, vy), bullets)
+          # shoot = State/mod(Lens/set(GameState/bullets, bullets))
+          bullet = Bullet/new(px, py, vx, vy)
+          shoot = State/mod(Lens/over(GameState/bullets, List/Cons(bullet)))
+        else:
+          shoot = wrap(*)
+        * <- shoot
+
+        do_tick = Lens/zoom(GameState/input, State/mod(clear_key_down))
+
+      case GameMode/GameOver:
+        do_tick = wrap(*)
 
   return State/exec(do_tick, state)
 
@@ -157,10 +162,10 @@ def draw_stars(rgen):
 def when(event):
   match event:
     case Event/KeyUp:
-      handle = InputBuffer/register_key_up(event.keycode)
+      handle = register_key_up(event.keycode)
       handle = Lens/zoom(GameState/input, State/mod(handle))
     case Event/KeyDown:
-      handle = InputBuffer/register_key_down(event.keycode)
+      handle = register_key_down(event.keycode)
       handle = Lens/zoom(GameState/input, State/mod(handle))
 
   return State/exec(handle)
