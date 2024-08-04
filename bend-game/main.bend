@@ -1,9 +1,10 @@
-from ./actions import *
+from ./actions import (clear, draw_line, draw_circle, draw_text)
 from ./api import *
 from ./api/Color import *
 from ./config import *
 from ./util import *
 from ./util/Bool import (TRUE, FALSE)
+from ./util/List import (map)
 import ./Asteroid
 import ./Bullet
 import ./Collider
@@ -11,6 +12,7 @@ import ./CommandBuffer
 import ./CommandWriter
 import ./GameMode
 import ./GameState
+from ./GameState import (modeL, inputL, playerL, bulletsL, asteroidsL)
 import ./InputBuffer
 from ./InputBuffer import (
   clear_key_down,
@@ -20,64 +22,64 @@ from ./InputBuffer import (
   register_key_up
 )
 import ./Lens
-from ./Lens import (zoom)
+from ./Lens import (over, set, view, zoom)
 import ./Player
 import ./Random
 import ./Star
 import ./State
+from ./State import (gets, modify)
 import ./Transform
 
 def init():
-  px = to_f24(SCREEN_WIDTH)  / 2.0
-  py = to_f24(SCREEN_HEIGHT) / 2.0
-  player = Player/new(px, py)
+  player = Player/new(to_f24(SCREEN_WIDTH) / 2.0, to_f24(SCREEN_HEIGHT) / 2.0)
   bullets = []
   asteroids = [Asteroid/new(30.0, 30.0, 1.0, 1.0, 30.0)]
-  return GameState(GameMode/Paused, player, bullets, asteroids, InputBuffer/new)
+  return GameState(GameMode/Paused, InputBuffer/new, player, bullets, asteroids)
 
-def tick(state):
-  mode = GameState/get_mode(state)
-  inpb = GameState/get_input(state)
-
+def tick():
   with State:
+    mode <- gets(view(modeL))
+    input <- gets(view(inputL))
+
     match mode:
       case GameMode/Paused:
-        if get_key_down(KeyCode/SPACE, inpb):
-          do_tick = State/mod(Lens/set(GameState/mode, GameMode/Playing))
+        if get_key_down(KeyCode/SPACE, input):
+          do_tick = modify(set(modeL, GameMode/Playing))
         else:
           do_tick = wrap(*)
 
       case GameMode/Playing:
-        * <- zoom(GameState/player, State/mod(Player/tick(inpb)))
-        * <- zoom(GameState/bullets, State/mod(List/map(Bullet/tick)))
-        * <- zoom(GameState/asteroids, State/mod(List/map(Asteroid/tick)))
+        * <- zoom(playerL, modify(Player/tick(input)))
+        * <- zoom(bulletsL, modify(map(Bullet/tick)))
+        * <- zoom(asteroidsL, modify(map(Asteroid/tick)))
 
         # TODO: Messy; clean up
-        bullets <- State/prj(Lens/get(GameState/bullets))
-        asteroids <- State/prj(Lens/get(GameState/asteroids))
+        bullets <- gets(view(bulletsL))
+        asteroids <- gets(view(asteroidsL))
         asteroids, bullets = check_collisions(asteroids, bullets)
-        * <- State/mod(Lens/set(GameState/asteroids, asteroids))
+        * <- modify(set(asteroidsL, asteroids))
+        * <- modify(set(bulletsL, bullets))
   
         # TODO: Move this to its own function (`Player/shoot`?)
-        if get_key_down(KeyCode/DOWN, inpb):
-          xform <- State/prj(Lens/get(Lens/compose(GameState/player, Player/xformL)))
+        if get_key_down(KeyCode/DOWN, input):
+          xform <- gets(view(Lens/compose(playerL, Player/xformL)))
           px, py = Transform/apply(xform, 0.0, -14.0)
           vx, vy = Transform/front(xform)
           vx, vy = 10.0 * vx, 10.0 * vy
-          # bullets = List/Cons(Bullet/new(px, py, vx, vy), bullets)
-          # shoot = State/mod(Lens/set(GameState/bullets, bullets))
           bullet = Bullet/new(px, py, vx, vy)
-          shoot = State/mod(Lens/over(GameState/bullets, List/Cons(bullet)))
+          shoot = modify(over(bulletsL, List/Cons(bullet)))
         else:
           shoot = wrap(*)
-        * <- shoot
 
-        do_tick = zoom(GameState/input, State/mod(clear_key_down))
+        do_tick = shoot
 
       case GameMode/GameOver:
         do_tick = wrap(*)
 
-  return State/exec(do_tick, state)
+    * <- do_tick
+    do_tick = zoom(inputL, modify(clear_key_down))
+
+  return State/exec(do_tick)
 
 def check_collisions(asteroids, bullets):
   match asteroids:
@@ -100,33 +102,27 @@ def check_asteroid_collisions(asteroid, bullets):
         return asteroid_pieces, List/Cons(bullets.head, bullets_tail)
 
 def draw(state):
-  open GameState: state
+  mode = view(modeL, state)
 
   with CommandWriter:
     * <- clear(BLACK)
     # * <- draw_stars(Random/seed(5678))
-    cw = wrap(*)
 
-  match state.mode:
-    case GameMode/Paused:
-      with CommandWriter:
-        * <- cw
+    match mode:
+      case GameMode/Paused:
         cw = draw_text("Press SPACE to start", 230.0, 300.0, WHITE)
-    case GameMode/Playing:
-      with CommandWriter:
-        * <- cw
-        * <- draw_asteroids(state.asteroids)
-        * <- draw_bullets(state.bullets)
-        cw = Player/draw(state.player)
-    case GameMode/GameOver:
-      with CommandWriter:
-        * <- cw
+      case GameMode/Playing:
+        * <- draw_asteroids(view(asteroidsL, state))
+        * <- draw_bullets(view(bulletsL, state))
+        cw = Player/draw(view(playerL, state))
+      case GameMode/GameOver:
         cw = draw_text("GAME OVER", 300.0, 300.0, WHITE)
 
+  # TODO: Avoid using `open` here
   open CommandWriter: cw
   return CommandBuffer/flush(cw.buf)
 
-# TODO: Simplify using List/map, etc.
+# TODO: Simplify using sequence, map (or mapM)
 def draw_asteroids(asteroids):
   match asteroids:
     case List/Nil:
@@ -137,7 +133,7 @@ def draw_asteroids(asteroids):
         * <- draw_asteroids(asteroids.tail)
         return wrap(*)
 
-# TODO: Simplify using List/map, etc.
+# TODO: Simplify using sequence, map (or mapM)
 def draw_bullets(bullets):
   match bullets:
     case List/Nil:
@@ -163,13 +159,12 @@ def draw_stars(rgen):
 def when(event):
   match event:
     case Event/KeyUp:
-      handle = register_key_up(event.keycode)
-      handle = zoom(GameState/input, State/mod(handle))
+      handle_event = modify(register_key_up(event.key))
+      handle_event = zoom(inputL, handle_event)
     case Event/KeyDown:
-      handle = register_key_down(event.keycode)
-      handle = zoom(GameState/input, State/mod(handle))
-
-  return State/exec(handle)
+      handle_event = modify(register_key_down(event.key))
+      handle_event = zoom(inputL, handle_event)
+  return State/exec(handle_event)
 
 def main():
   return App(init, tick, draw, when)

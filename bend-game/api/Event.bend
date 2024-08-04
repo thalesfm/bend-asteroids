@@ -1,3 +1,3 @@
 type Event:
-  KeyDown { keycode }
-  KeyUp { keycode }
+  KeyDown { key }
+  KeyUp { key }

@@ -1,33 +1,38 @@
 import ./State
 
-object Lens { get, set }
+object Lens {
+  getter,
+  setter,
+}
 
-# get : Lens a b -> a -> b
-def get(lens):
+def new(getter, setter):
+  return Lens(getter, setter)
+
+def view(lens):
   open Lens: lens
-  return lens.get
+  return lens.getter
 
-# set : Lens a b -> b -> a -> a
 def set(lens):
   open Lens: lens
-  return lens.set
+  return lens.setter
 
 def over(lens, fun, val):
   open Lens: lens
-  return set(lens, fun(get(lens, val)), val)
+  return set(lens, fun(view(lens, val)), val)
 
 def compose(outerL, innerL):
-  def get_(val):
-    return get(innerL, get(outerL, val))
-  def set_(inner, val):
-    outer = get(outerL, val)
-    outer = set(innerL, inner, outer)
+  def getter(val):
+    return view(innerL, view(outerL, val))
+  def setter(inner, val):
+    outer = set(innerL, inner, view(outerL, val))
     return set(outerL, outer, val)
-  return Lens(get_, set_)
+  return Lens(getter, setter)
 
 # zoom : Lens a b -> State b c -> State a c
-def zoom(lens, run, outer):
-  inner = get(lens, outer)
-  (val, inner) = run(inner)
-  outer = set(lens, inner, outer)
-  return (val, outer)
+def zoom(lens, run1):
+  def run2(outer):
+    inner = view(lens, outer)
+    (val, inner) = run1(inner)
+    outer = set(lens, inner, outer)
+    return (val, outer)
+  return run2

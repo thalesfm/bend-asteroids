@@ -1,5 +1,8 @@
 import ./CommandBuffer
 
+# TODO: Implement sequence
+# TODO: Implement mapM, mapM_
+
 object CommandWriter { val, buf }
 
 def wrap(val):

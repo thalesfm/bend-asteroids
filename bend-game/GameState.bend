@@ -1,58 +1,64 @@
 import ./Lens
 
-object GameState { mode, player, bullets, asteroids, input }
+object GameState {
+  _mode,
+  _input,
+  _player,
+  _bullets,
+  _asteroids,
+}
 
 def get_mode(state):
   open GameState: state
-  return state.mode
+  return state._mode
   
+def get_input(state):
+  open GameState: state
+  return state._input
+
 def get_player(state):
   open GameState: state
-  return state.player
+  return state._player
 
 def get_bullets(state):
   open GameState: state
-  return state.bullets
+  return state._bullets
 
 def get_asteroids(state):
   open GameState: state
-  return state.asteroids
-
-def get_input(state):
-  open GameState: state
-  return state.input
+  return state._asteroids
 
 def set_mode(_mode, state):
   open GameState: state
-  return GameState(_mode, state.player, state.bullets, state.asteroids, state.input)
-
-def set_player(_player, state):
-  open GameState: state
-  return GameState(state.mode, _player, state.bullets, state.asteroids, state.input)
-
-def set_bullets(_bullets, state):
-  open GameState: state
-  return GameState(state.mode, state.player, _bullets, state.asteroids, state.input)
-
-def set_asteroids(_asteroids, state):
-  open GameState: state
-  return GameState(state.mode, state.player, state.bullets, _asteroids, state.input)
+  return GameState(_mode, state._input, state._player, state._bullets, state._asteroids)
 
 def set_input(_input, state):
   open GameState: state
-  return GameState(state.mode, state.player, state.bullets, state.asteroids, _input)
+  return GameState(state._mode, _input, state._player, state._bullets, state._asteroids)
 
-def mode():
+def set_player(_player, state):
+  open GameState: state
+  return GameState(state._mode, state._input, _player, state._bullets, state._asteroids)
+
+def set_bullets(_bullets, state):
+  open GameState: state
+  return GameState(state._mode, state._input, state._player, _bullets, state._asteroids)
+
+def set_asteroids(_asteroids, state):
+  open GameState: state
+  return GameState(state._mode, state._input, state._player, state._bullets, _asteroids)
+
+def modeL():
   return Lens(get_mode, set_mode)
 
-def player():
+def inputL():
+  return Lens(get_input, set_input)
+
+def playerL():
   return Lens(get_player, set_player)
 
-def bullets():
+def bulletsL():
   return Lens(get_bullets, set_bullets)
 
-def asteroids():
+def asteroidsL():
   return Lens(get_asteroids, set_asteroids)
-
-def input():
-  return Lens(get_input, set_input)

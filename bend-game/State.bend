@@ -12,17 +12,25 @@ def exec(run, state):
 def get(state):
   return (state, state)
 
-# set : s -> State s ()
-def set(state, _state):
+# put : s -> State s ()
+def put(state, _state):
   return (*, state)
 
-# prj : (s -> a) -> State s a
-def prj(fun, state):
-  return (fun(state), state)
+# gets : (s -> a) -> State s a
+def gets(fun):
+  # Workaround for compiler error
+  # (attempt to clone non-affine global reference)
+  def run(state):
+    return (fun(state), state)
+  return run
 
-# mod : (s -> s) -> State s ()
-def mod(fun, state):
-  return (*, fun(state))
+# modify : (s -> s) -> State s ()
+# def modify(fun, state):
+#   return (*, fun(state))
+def modify(fun):
+  def run(state):
+    return (*, fun(state))
+  return run
 
 # wrap : a -> State s a
 def wrap(val, state):
