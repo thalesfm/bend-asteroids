@@ -22,7 +22,7 @@ from ./InputBuffer import (
   register_key_up
 )
 import ./Lens
-from ./Lens import (over, set, view, zoom)
+from ./Lens import (assign, modifying, over, set, use_, view, zoom)
 import ./Player
 import ./Random
 import ./Star
@@ -38,89 +38,43 @@ def init():
 
 def tick():
   with State:
-    mode <- gets(view(modeL))
-    input <- gets(view(inputL))
+    mode  <- use_(modeL)
+    input <- use_(inputL)
 
     match mode:
       case GameMode/Paused:
         if get_key_down(KeyCode/SPACE, input):
-          do_tick = modify(set(modeL, GameMode/Playing))
+          do_tick = assign(modeL, GameMode/Playing)
         else:
           do_tick = wrap(*)
 
       case GameMode/Playing:
-        # Borken:
-        # * <- zoom(Lens/compose(playerL, Player/xformL), modify(Transform/translate(0.1, 0.0)))
-
-        # Works:
-        # xform <- gets(view(Lens/compose(playerL, Player/xformL)))
-        # * <- modify(set(Lens/compose(playerL, Player/xformL), xform))
-
-        # Borken:
-        # xform <- gets(view(Lens/compose(playerL, Player/xformL)))
-        # * <- zoom(Lens/compose(playerL, Player/xformL), put(xform))
-
-        # Borken:
-        # xform <- gets(view(Lens/compose(playerL, Player/xformL)))
-        # * <- zoom(Lens/compose(playerL, Player/xformL), modify(lambda _: xform))
-
-        # Works:
-        # xform <- gets(view(Lens/compose(playerL, Player/xformL)))
-        # * <- zoom(playerL, zoom(Player/xformL, put(xform)))
-
-        # Works:
-        # xform <- gets(view(Lens/compose(playerL, Player/xformL)))
-        # * <- zoom(playerL, zoom(Player/xformL, modify(lambda _: xform)))
-
-        # Borken:
-        # xform <- zoom(Lens/compose(playerL, Player/xformL), State/get)
-        # * <- zoom(playerL, zoom(Player/xformL, put(xform)))
-
-        #####################
-        # BREAKDOWN BY LINE #
-        #####################
-
-        # Working (1st line):
-        # xform <- gets(view(Lens/compose(playerL, Player/xformL)))
-
-        # Borken (1st line):
-        # xform <- zoom(Lens/compose(playerL, Player/xformL), State/get)
-
-        # Working (2nd line):
-        # * <- modify(set(Lens/compose(playerL, Player/xformL), xform))
-        # * <- zoom(playerL, zoom(Player/xformL, put(xform)))
-        # * <- zoom(playerL, zoom(Player/xformL, modify(lambda _: xform)))
-
-        # Borken (2nd line):
-        # * <- zoom(Lens/compose(playerL, Player/xformL), put(xform))
-        # * <- zoom(Lens/compose(playerL, Player/xformL), modify(lambda _: xform))
-
-        # EVERY BROKEN LINE CONTAINS zoom . compose
-
-        * <- zoom(playerL, modify(Player/tick(input)))
-        * <- zoom(bulletsL, modify(map(Bullet/tick)))
-        * <- zoom(asteroidsL, modify(map(Asteroid/tick)))
+        * <- modifying(playerL, Player/tick(input))
+        * <- modifying(bulletsL, map(Bullet/tick))
+        * <- modifying(asteroidsL, map(Asteroid/tick))
 
         new_bullets <- zoom(playerL, gets(Player/shoot(input)))
-        * <- zoom(bulletsL, modify(List/concat(new_bullets)))
+        # new_bullets <- uses(playerL, Player/shoot(input))
+        * <- modifying(bulletsL, List/concat(new_bullets))
 
         # TODO: Messy; clean up
-        bullets <- gets(view(bulletsL))
-        asteroids <- gets(view(asteroidsL))
+        bullets <- use_(bulletsL)
+        asteroids <- use_(asteroidsL)
         asteroids, bullets = check_collisions(asteroids, bullets)
-        * <- modify(set(asteroidsL, asteroids))
-        * <- modify(set(bulletsL, bullets))
+        * <- assign(asteroidsL, asteroids)
+        * <- assign(bulletsL, bullets)
         do_tick = wrap(*)
 
       case GameMode/GameOver:
         do_tick = wrap(*)
 
     * <- do_tick
-    * <- zoom(inputL, modify(clear_key_down))
+    * <- modifying(inputL, clear_key_down)
     do_tick = wrap(*)
 
   return State/exec(do_tick)
 
+# TODO: Refactor & move to separate file
 def check_collisions(asteroids, bullets):
   match asteroids:
     case List/Nil:
@@ -130,6 +84,7 @@ def check_collisions(asteroids, bullets):
       asteroids, bullets = check_collisions(asteroids.tail, bullets)
       return List/concat(asteroid_pieces, asteroids), bullets
 
+# TODO: Refactor & move to separate file
 def check_asteroid_collisions(asteroid, bullets):
   match bullets:
     case List/Nil:
@@ -199,11 +154,9 @@ def draw_stars(rgen):
 def when(event):
   match event:
     case Event/KeyUp:
-      handle_event = modify(register_key_up(event.key))
-      handle_event = zoom(inputL, handle_event)
+      handle_event = modifying(inputL, register_key_up(event.key))
     case Event/KeyDown:
-      handle_event = modify(register_key_down(event.key))
-      handle_event = zoom(inputL, handle_event)
+      handle_event = modifying(inputL, register_key_down(event.key))
   return State/exec(handle_event)
 
 def main():

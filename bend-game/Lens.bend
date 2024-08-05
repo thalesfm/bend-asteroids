@@ -44,6 +44,10 @@ def view(lens):
   open Lens: lens
   return lens.getter
 
+# def views(lens, fun):
+#   open Lens: lens
+#   return ...
+
 def over(lens):
   open Lens: lens
   return lens.modify
@@ -57,9 +61,20 @@ def set(lens):
   return setter
 
 # def mapped():
-#   def setter(lst):
+#   ...
 
-# zoom : Lens a b -> State b c -> State a c
+def use_(lens):
+  return State/gets(view(lens))
+
+# def uses(lens, fun):
+#   return State/gets(views(lens))
+
+def assign(lens, val):
+  return State/modify(set(lens, val))
+
+def modifying(lens, fun):
+  return State/modify(over(lens, fun))
+
 def zoom(lens, runInner):
   def runOuter(outer):
     # TODO: Use modify instead of set
